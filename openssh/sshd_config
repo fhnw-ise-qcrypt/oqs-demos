@@ -10,17 +10,16 @@
 # possible, but leave them commented.  Uncommented options override the
 # default value.
 
-HostKey                 /opt/oqssa/ssh_host_dilithium2_key 
-KexAlgorithms           kyber-768-sha384@openquantumsafe.org
-# AuthorizedKeysFile      .oqs-ssh/server/authorized_keys
-HostKeyAlgorithms       ssh-dilithium2
-PubkeyAcceptedKeyTypes  ssh-dilithium2
+KexAlgorithms kyber-768-sha384@openquantumsafe.org
+HostKeyAlgorithms ssh-dilithium2
+PubkeyAcceptedKeyTypes ssh-dilithium2
 
 Port 2222
 #AddressFamily any
 #ListenAddress 0.0.0.0
 #ListenAddress ::
 
+HostKey /opt/oqssa/ssh_host_dilithium2_key 
 HostKey /opt/oqssa/ssh_host_rsa_key
 HostKey /opt/oqssa/ssh_host_ecdsa_key
 HostKey /opt/oqssa/ssh_host_ed25519_key

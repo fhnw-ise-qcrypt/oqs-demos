@@ -4,7 +4,7 @@
 ARG INSTALLDIR=/opt/oqssa
 
 # liboqs build defines (https://github.com/open-quantum-safe/liboqs/wiki/Customizing-liboqs)
-# ARG LIBOQS_BUILD_DEFINES=
+ARG LIBOQS_BUILD_DEFINES=
 
 # openssl build defines (https://github.com/open-quantum-safe/openssl#build-options)
 # ARG OPENSSH_BUILD_DEFINES="-DOQS_DEFAULT_GROUPS=p384_kyber768:X25519:kyber768:newhope1024cca"
@@ -15,6 +15,8 @@ ARG SIG="dilithium2"
 # Define the degree of parallelism when building the image; leave the number away only if you know what you are doing
 ARG MAKE_DEFINES="-j 6"
 
+# Define the username of the normal user
+ARG USER="oqs"
 
 FROM alpine:3.11 as intermediate
 # Take in all global args
@@ -23,6 +25,7 @@ ARG LIBOQS_BUILD_DEFINES
 ARG OPENSSH_BUILD_DEFINES
 ARG SIG
 ARG MAKE_DEFINES
+ARG USER
 
 LABEL version="2"
 
@@ -47,7 +50,7 @@ RUN git clone --depth 1 --branch 0.4.0 https://github.com/open-quantum-safe/libo
 # build liboqs static (does not work with shared lib!)
 WORKDIR /opt/liboqs
 # RUN mkdir build && cd build && cmake .. ${LIBOQS_BUILD_DEFINES} -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/opt/ossh-src/oqs && make ${MAKE_DEFINES} && make install
-RUN mkdir build-static && cd build-static && cmake .. -DCMAKE_BUILD_TYPE=${LIBOQS_BUILD_TYPE} -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/opt/ossh-src/oqs && make ${MAKE_DEFINES} && make install
+RUN mkdir build-static && cd build-static && cmake .. ${LIBOQS_BUILD_DEFINES} -DCMAKE_BUILD_TYPE=${LIBOQS_BUILD_TYPE} -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/opt/ossh-src/oqs && make ${MAKE_DEFINES} && make install
 
 # build OQS-OpenSSH, this will automatically generate host keys for all SIG algorithms
 WORKDIR /opt/ossh-src
@@ -58,25 +61,25 @@ ENV PATH="${INSTALLDIR}/bin:${PATH}"
 ENV PATH="${INSTALLDIR}/sbin:${PATH}"
 ENV PATH="${INSTALLDIR}:${PATH}"
 
-# Enable a normal user to create new server keys off set CA
-ENV USER=oqs
-RUN addgroup --gid 1000 --system ${USER} && adduser --uid 1000 --system ${USER} --ingroup ${USER} --shell /bin/bash
+# Create a normal user to be able to log into the system via ssh
+RUN addgroup --gid 1000 --system ${USER} && adduser --uid 1000 --system ${USER} --ingroup ${USER} --shell /bin/sh && passwd -d ${USER}
 
-# Create identity file for $USER and add public key to $USER's authorized keys
+# Create identity file for $USER and add public key to $USER's authorized keys for a localhost connection
 WORKDIR /home/${USER}/.ssh
 RUN chown ${USER}:${USER} .
 USER ${USER}
 RUN chmod 700 . && ${INSTALLDIR}/bin/ssh-keygen -t ssh-${SIG} -f id_${SIG} -N "" -q && cat id_${SIG}.pub > authorized_keys && chmod 600 authorized_keys
-WORKDIR ${HOME}
 
 USER root
 COPY sshd_config ${INSTALLDIR}
 COPY ssh_config ${INSTALLDIR}
-COPY serverstart.sh ${INSTALLDIR}
-
+COPY serverstart.sh ${INSTALLDIR}/test/
+COPY connect-test.sh ${INSTALLDIR}/test/
+WORKDIR ${INSTALLDIR}/test
+ENV PATH="${INSTALLDIR}/test:${PATH}"
 
 CMD [ "serverstart.sh" ]
-
+# USER ${USER}
 STOPSIGNAL SIGTERM
 
 # WORKDIR /

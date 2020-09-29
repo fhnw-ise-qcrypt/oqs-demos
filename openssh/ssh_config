@@ -46,9 +46,11 @@
 #   RekeyLimit 1G 1h
 #
 
+# Settings for Quantum-Safe Key-Exchange and Authentication
 Port 2222
 KexAlgorithms kyber-768-sha384@openquantumsafe.org
 HostKeyAlgorithms ssh-dilithium2
 PubkeyAcceptedKeyTypes=ssh-dilithium2
-StrictHostKeyChecking=no
+
+# StrictHostKeyChecking=no
 # IdentityFile ~/.oqs-ssh/client/id_dilithium2

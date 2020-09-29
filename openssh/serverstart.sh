@@ -1,21 +1,32 @@
 #!/bin/sh
 
-# Optionally set KEM to one defined in https://github.com/open-quantum-safe/openssl#key-exchange
-# if [ "x$KEM" == "x" ]; then
-# 	export KEM=kyber-512
-# fi
+OPTIONS=""
 
-# # Optionally set server certificate alg to one defined in https://github.com/open-quantum-safe/openssl#authentication
-# # The root CA's signature alg remains as set when building the image
-# if [ "x$SIG" != "x" ]; then
-#     cd /opt/oqssa/bin
-# fi
+# Optionally set port
+# if left empty, the options defined in sshd_config will be used
+if [ "x$SERVER_PORT" != "x" ]; then
+    OPTIONS="${OPTIONS} -p ${SERVER_PORT}"
+fi
 
-# Start a TLS1.3 test server based on OpenSSL accepting only the specified KEM_ALG
-# openssl s_server -cert /opt/test/server.crt -key /opt/test/server.key -curves $KEM_ALG -www -tls1_3 -accept localhost:4433&
+# Optionally set KEM to one defined in https://github.com/open-quantum-safe/openssh#key-exchange
+# if left empty, the options defined in sshd_config will be used
+if [ "x$KEM" != "x" ]; then
+    OPTIONS="${OPTIONS} -o KexAlgorithms=${KEM}-sha384@openquantumsafe.org"
+fi
+
+# Optionally set SIG to one defined in https://github.com/open-quantum-safe/openssh#digital-signature
+# if left empty, the options defined in sshd_config will be used
+if [ "x$SIG" != "x" ]; then
+    OPTIONS="${OPTIONS} -o HostKeyAlgorithms=ssh-${SIG} -o PubkeyAcceptedKeyTypes=ssh-${SIG}"
+fi
 
 # Start the OQS SSH Daemon with the configuration as in /opt/oqssa/sshd_config
-/opt/oqssa/sbin/sshd
+/opt/oqssa/sbin/sshd ${OPTIONS}
 
 # Open a shell for local experimentation
-sh
+if [ "x${CONNECT_TEST}" == "x" ]; then
+    su - oqs -c sh
+else
+# return the options configuration in case of testing so the client can adapt
+    echo ${OPTIONS}
+fi
