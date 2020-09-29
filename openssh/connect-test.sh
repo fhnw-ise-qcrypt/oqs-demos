@@ -1,10 +1,19 @@
-#!/bin/bash
+#!/bin/sh
 
-# eval "export CONNECT_TEST=true; serverstart.sh"
-export CONNECT_TEST=true
-OPTIONS=$(serverstart.sh)
 
-# Evaluate if
+# Correct id file exists? Create it if not
+
+SSH_DIR="/home/oqs/.ssh"
+SIG_ID_FILE="${SSH_DIR}/id_${SIG/-/_}"
+if [ "x${SIG}" != "x" ] && [ ! -e ~/.ssh/id_${SIG} ]; then
+    su oqs -c "/opt/oqssa/bin/ssh-keygen -t ssh-${SIG} -f ${SIG_ID_FILE} -N \"\" -q"
+    cat ${SIG_ID_FILE}.pub >> ${SSH_DIR}/authorized_keys
+    # echo "New key '${SIG_ID_FILE}(.pub)' created!"
+fi
+
+eval "export CONNECT_TEST=true; serverstart.sh"
+
+# Evaluate if called as root
 if [ "x${USER}" == "x" ]; then
     SSH="su oqs -c "
 fi
@@ -41,7 +50,7 @@ if [ "x$SIG" != "x" ]; then
     OPTIONS="${OPTIONS} -o HostKeyAlgorithms=ssh-${SIG} -o PubkeyAcceptedKeyTypes=ssh-${SIG}"
 fi
 
-CMD="${SSH} \"ssh ${OPTIONS} ${TEST_HOST} 'exit 0'\""
+CMD="${SSH}\"ssh ${OPTIONS} ${TEST_HOST} 'exit 0'\""
 # echo $CMD
 eval $CMD
 

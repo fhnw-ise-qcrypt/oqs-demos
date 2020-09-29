@@ -39,7 +39,7 @@ localCheckout: &localCheckout
         command: docker tag oqs-curl-generic $TARGETNAME/curl:latest && docker push $TARGETNAME/curl:latest && docker tag oqs-curl $TARGETNAME/curl:optimized && docker push $TARGETNAME/curl:optimized && docker tag oqs-curl-dev $TARGETNAME/curl-dev && docker push $TARGETNAME/curl-dev && docker tag oqs-httpd-img $TARGETNAME/httpd:latest && docker push $TARGETNAME/httpd:latest && docker tag oqs-nginx-img $TARGETNAME/nginx:latest && docker push $TARGETNAME/nginx:latest
     - run:
         name: OQS-OpenSSH
-        command: .circleci/git_no_checkin_in_last_day.sh || (cd openssh && docker build --target intermediate -t oqs-openssh . && docker run -e KEM=kyber-768 -e SIG=dilithium2 -it oqs-openssh connect-test.sh || echo "Test complete")
+        command: .circleci/git_no_checkin_in_last_day.sh || (cd openssh && docker build -t oqs-openssh . && docker run -e KEM=ecdh-nistp384-kyber-768 -e SIG=p256-dilithium2 -it oqs-openssh connect-test.sh || echo "Test complete")
 
 
 # Reactivate when issue #13 is resolved:

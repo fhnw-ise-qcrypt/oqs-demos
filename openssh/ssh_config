@@ -49,8 +49,6 @@
 # Settings for Quantum-Safe Key-Exchange and Authentication
 Port 2222
 KexAlgorithms kyber-768-sha384@openquantumsafe.org
-HostKeyAlgorithms ssh-dilithium2
-PubkeyAcceptedKeyTypes=ssh-dilithium2
-
-# StrictHostKeyChecking=no
-# IdentityFile ~/.oqs-ssh/client/id_dilithium2
+HostKeyAlgorithms ssh-p256-dilithium2
+PubkeyAcceptedKeyTypes ssh-p256-dilithium2
+StrictHostKeyChecking no

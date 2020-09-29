@@ -70,7 +70,7 @@ RUN chown ${USER}:${USER} .
 USER ${USER}
 RUN chmod 700 . && ${INSTALLDIR}/bin/ssh-keygen -t ssh-${SIG} -f id_${SIG} -N "" -q && cat id_${SIG}.pub > authorized_keys && chmod 600 authorized_keys
 
-USER root
+USER root   
 COPY sshd_config ${INSTALLDIR}
 COPY ssh_config ${INSTALLDIR}
 COPY serverstart.sh ${INSTALLDIR}/test/
@@ -79,56 +79,38 @@ WORKDIR ${INSTALLDIR}/test
 ENV PATH="${INSTALLDIR}/test:${PATH}"
 
 CMD [ "serverstart.sh" ]
-# USER ${USER}
 STOPSIGNAL SIGTERM
 
-# WORKDIR /
-
-# COPY serverstart.sh ${INSTALLDIR}/bin
-
-# CMD ["serverstart.sh"]
 
 
+## second stage: Only create minimal image without build tooling and intermediate build results generated above:
+FROM alpine:3.11 as dev
+# Take in all global args
+ARG INSTALLDIR
+ARG USER
+ARG SIG
+
+# Only retain the ${INSTALLDIR} contents in the final image
+COPY --from=intermediate ${INSTALLDIR} ${INSTALLDIR}
 
 
+# Create a normal user to be able to log into the system via ssh
+RUN addgroup --gid 1000 --system ${USER} && adduser --uid 1000 --system ${USER} --ingroup ${USER} --shell /bin/sh && passwd -d ${USER}
 
-# ## second stage: Only create minimal image without build tooling and intermediate build results generated above:
-# FROM alpine:3.11 as dev
-# # Take in all global args
-# ARG INSTALLDIR
-# ARG SIG
-# ARG KEM
+# Create identity file for $USER and add public key to $USER's authorized keys for a localhost connection
+WORKDIR /home/${USER}/.ssh
+RUN chown ${USER}:${USER} .
+USER ${USER}
+RUN chmod 700 . && ${INSTALLDIR}/bin/ssh-keygen -t ssh-${SIG} -f id_${SIG} -N "" -q && cat id_${SIG}.pub > authorized_keys && chmod 600 authorized_keys
+ENV PATH="${INSTALLDIR}/bin:${PATH}"
+WORKDIR /home/${USER}
 
-# # Only retain the ${INSTALLDIR} contents in the final image
-# COPY --from=intermediate ${INSTALLDIR} ${INSTALLDIR}
+USER root
 
-# # set path to use 'new' openssl & curl. Dyn libs have been properly linked in to match
-# ENV PATH="${INSTALLDIR}/bin:${PATH}"
+# set path to use 'new' openssh
+ENV PATH="${INSTALLDIR}/bin:${PATH}"
+ENV PATH="${INSTALLDIR}/test:${PATH}"
 
-# # generate certificates for openssl s_server, which is what we will test curl against
-# ENV OPENSSL=${INSTALLDIR}/bin/openssl
-# ENV OPENSSL_CNF=${INSTALLDIR}/ssl/openssl.cnf
-
-# WORKDIR ${INSTALLDIR}/bin
-
-# RUN set -x && mkdir /opt/test && \
-#     # generate server CSR using pre-set CA.key & cert
-#     ${OPENSSL} req -new -newkey ${SIG_ALG} -keyout /opt/test/server.key -out /opt/test/server.csr -nodes -subj "/CN=localhost" -config ${OPENSSL_CNF} && \
-#     # generate server cert
-#     ${OPENSSL} x509 -req -in /opt/test/server.csr -out /opt/test/server.crt -CA CA.crt -CAkey CA.key -CAcreateserial -days 365;
-
-# COPY serverstart.sh ${INSTALLDIR}/bin
-# COPY perftest.sh ${INSTALLDIR}/bin
-
-# WORKDIR ${INSTALLDIR}
-
-# FROM dev
-# ARG INSTALLDIR
-
-# WORKDIR /
-
-
-
-# USER oqs
-# CMD ["serverstart.sh"]
-# STOPSIGNAL SIGTERM
+# USER ${USER}
+CMD [ "serverstart.sh" ]
+STOPSIGNAL SIGTERM

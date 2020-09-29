@@ -11,15 +11,15 @@
 # default value.
 
 KexAlgorithms kyber-768-sha384@openquantumsafe.org
-HostKeyAlgorithms ssh-dilithium2
-PubkeyAcceptedKeyTypes ssh-dilithium2
+HostKeyAlgorithms ssh-p256-dilithium2
+PubkeyAcceptedKeyTypes ssh-p256-dilithium2
 
 Port 2222
 #AddressFamily any
 #ListenAddress 0.0.0.0
 #ListenAddress ::
 
-HostKey /opt/oqssa/ssh_host_dilithium2_key 
+HostKey /opt/oqssa/ssh_host_p256_dilithium2_key
 HostKey /opt/oqssa/ssh_host_rsa_key
 HostKey /opt/oqssa/ssh_host_ecdsa_key
 HostKey /opt/oqssa/ssh_host_ed25519_key
