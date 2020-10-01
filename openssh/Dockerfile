@@ -10,7 +10,7 @@ ARG LIBOQS_BUILD_DEFINES=
 # ARG OPENSSH_BUILD_DEFINES="-DOQS_DEFAULT_GROUPS=p384_kyber768:X25519:kyber768:newhope1024cca"
 
 # Default root CA signature algorithm; can be set to any listed at https://github.com/open-quantum-safe/openssl#authentication
-ARG SIG="dilithium2"
+ARG SIG="p256-dilithium2"
 
 # Define the degree of parallelism when building the image; leave the number away only if you know what you are doing
 ARG MAKE_DEFINES="-j 6"
@@ -68,7 +68,7 @@ RUN addgroup --gid 1000 --system ${USER} && adduser --uid 1000 --system ${USER} 
 WORKDIR /home/${USER}/.ssh
 RUN chown ${USER}:${USER} .
 USER ${USER}
-RUN chmod 700 . && ${INSTALLDIR}/bin/ssh-keygen -t ssh-${SIG} -f id_${SIG} -N "" -q && cat id_${SIG}.pub > authorized_keys && chmod 600 authorized_keys
+RUN chmod 700 . && ${INSTALLDIR}/bin/ssh-keygen -t ssh-${SIG} -f id_${SIG//-/_} -N "" -q && cat id_${SIG//-/_}.pub > authorized_keys && chmod 600 authorized_keys
 
 USER root   
 COPY sshd_config ${INSTALLDIR}
@@ -90,9 +90,11 @@ ARG INSTALLDIR
 ARG USER
 ARG SIG
 
+RUN apk update \
+    && apk upgrade
+
 # Only retain the ${INSTALLDIR} contents in the final image
 COPY --from=intermediate ${INSTALLDIR} ${INSTALLDIR}
-
 
 # Create a normal user to be able to log into the system via ssh
 RUN addgroup --gid 1000 --system ${USER} && adduser --uid 1000 --system ${USER} --ingroup ${USER} --shell /bin/sh && passwd -d ${USER}
@@ -101,7 +103,7 @@ RUN addgroup --gid 1000 --system ${USER} && adduser --uid 1000 --system ${USER} 
 WORKDIR /home/${USER}/.ssh
 RUN chown ${USER}:${USER} .
 USER ${USER}
-RUN chmod 700 . && ${INSTALLDIR}/bin/ssh-keygen -t ssh-${SIG} -f id_${SIG} -N "" -q && cat id_${SIG}.pub > authorized_keys && chmod 600 authorized_keys
+RUN chmod 700 . && ${INSTALLDIR}/bin/ssh-keygen -t ssh-${SIG} -f id_${SIG//-/_} -N "" -q && cat id_${SIG//-/_}.pub > authorized_keys && chmod 600 authorized_keys
 ENV PATH="${INSTALLDIR}/bin:${PATH}"
 WORKDIR /home/${USER}
 
@@ -111,6 +113,19 @@ USER root
 ENV PATH="${INSTALLDIR}/bin:${PATH}"
 ENV PATH="${INSTALLDIR}/test:${PATH}"
 
+# Enable ssh deamon to start at boot
+COPY sshd /etc/init.d/
+RUN apk add openrc \
+    && mkdir -p /run/openrc \
+    && touch /run/openrc/softlevel \
+    && rc-update add sshd \
+    && rc-status
+
+# Fix error "/lib/rc/sh/openrc-run.sh: line 100: can't create /sys/fs/cgroup/*/*: Read-only file system"
+RUN sed -ri '269 s/cgroup_add_service/#cgroup_add_service/' /lib/rc/sh/openrc-run.sh
+
+
+# CMD [ "serverstart.sh" ]
+CMD ["sh", "-c", "rc-service sshd start; su oqs -c /bin/sh"]
 # USER ${USER}
-CMD [ "serverstart.sh" ]
 STOPSIGNAL SIGTERM

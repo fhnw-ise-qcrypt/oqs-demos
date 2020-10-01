@@ -25,7 +25,9 @@ fi
 
 
 # Start the OQS SSH Daemon with the configuration as in /opt/oqssa/sshd_config
-/opt/oqssa/sbin/sshd ${OPTIONS}
+CMD="/opt/oqssa/sbin/sshd ${OPTIONS}"
+[ "x${DEBUG}" == "xon" ] || [ "x${DEBUG}" == "xyes" ] && echo $CMD
+eval $CMD
 
 # Open a shell for local experimentation if not testing the connection
 if [ "x${CONNECT_TEST}" == "x" ]; then

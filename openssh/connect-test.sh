@@ -51,7 +51,7 @@ if [ "x$SIG" != "x" ]; then
 fi
 
 CMD="${SSH}\"ssh ${OPTIONS} ${TEST_HOST} 'exit 0'\""
-# echo $CMD
+[ "x${DEBUG}" == "xon" ] || [ "x${DEBUG}" == "xyes" ] && echo $CMD
 eval $CMD
 
 if [ $? -eq 0 ]; then
