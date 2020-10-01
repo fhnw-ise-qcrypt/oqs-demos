@@ -69,15 +69,11 @@ USER ${USER}
 RUN chmod 700 . && ${INSTALLDIR}/bin/ssh-keygen -t ssh-${SIG} -f id_${SIG//-/_} -N "" -q && cat id_${SIG//-/_}.pub > authorized_keys && chmod 600 authorized_keys
 
 USER root   
-COPY sshd_config ${INSTALLDIR}
-COPY ssh_config ${INSTALLDIR}
-COPY serverstart.sh ${INSTALLDIR}/test/
-COPY connect-test.sh ${INSTALLDIR}/test/
-WORKDIR ${INSTALLDIR}/test
-ENV PATH="${INSTALLDIR}/test:${PATH}"
+# WORKDIR ${INSTALLDIR}/test
+# ENV PATH="${INSTALLDIR}/test:${PATH}"
 
-CMD [ "serverstart.sh" ]
-STOPSIGNAL SIGTERM
+# CMD [ "serverstart.sh" ]
+# STOPSIGNAL SIGTERM
 
 
 
@@ -90,7 +86,8 @@ ARG PASSWORD
 ARG SIG
 
 RUN apk update \
-    && apk upgrade
+    && apk upgrade \
+    && apk add bash
 
 # Only retain the ${INSTALLDIR} contents in the final image
 COPY --from=intermediate ${INSTALLDIR} ${INSTALLDIR}
@@ -103,18 +100,12 @@ WORKDIR /home/${USER}/.ssh
 RUN chown ${USER}:${USER} .
 USER ${USER}
 RUN chmod 700 . && ${INSTALLDIR}/bin/ssh-keygen -t ssh-${SIG} -f id_${SIG//-/_} -N "" -q && cat id_${SIG//-/_}.pub > authorized_keys && chmod 600 authorized_keys
-ENV PATH="${INSTALLDIR}/bin:${PATH}"
-WORKDIR /home/${USER}
 
 # Pass some potentionally useful variables to environment
 USER root
 ENV OQS_SIG_DEFAULT=${SIG}
 ENV OQS_INSTALL_DIR=${INSTALLDIR}
 ENV OQS_USER=${USER}
-
-# set path to use 'new' openssh
-ENV PATH="${INSTALLDIR}/bin:${PATH}"
-ENV PATH="${INSTALLDIR}/test:${PATH}"
 
 # Enable ssh deamon to start at boot
 COPY sshd /etc/init.d/
@@ -127,6 +118,17 @@ RUN apk add openrc \
 # Fix error "/lib/rc/sh/openrc-run.sh: line 100: can't create /sys/fs/cgroup/*/*: Read-only file system"
 RUN sed -ri '269 s/cgroup_add_service/#cgroup_add_service/' /lib/rc/sh/openrc-run.sh
 
+# Copy scripts
+COPY sshd_config ${INSTALLDIR}
+COPY ssh_config ${INSTALLDIR}
+COPY serverstart.sh ${INSTALLDIR}/test/
+COPY connect-test.sh ${INSTALLDIR}/test/
+COPY key-regen.sh ${INSTALLDIR}/scripts/
+
+# set path to use 'new' openssh
+ENV PATH="${INSTALLDIR}/bin:${PATH}"
+ENV PATH="${INSTALLDIR}/test:${PATH}"
+ENV PATH="${INSTALLDIR}/scripts:${PATH}"
 
 # CMD [ "serverstart.sh" ]
 CMD ["sh", "-c", "rc-service sshd start; su oqs -c /bin/sh"]

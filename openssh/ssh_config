@@ -47,11 +47,11 @@
 #
 
 # Settings for Quantum-Safe Key-Exchange and Authentication
-Port 22
+Port 2222
 
-KexAlgorithms ecdh-nistp384-kyber-1024-sha384@openquantumsafe.org
+KexAlgorithms ecdh-nistp384-kyber-1024-sha384@openquantumsafe.org,curve25519-sha256
 
-HostKeyAlgorithms ssh-p256-dilithium2,ssh-ed25519,ssh-ecdsa
-PubkeyAcceptedKeyTypes ssh-p256-dilithium2,ssh-ed25519,ssh-ecdsa
+HostKeyAlgorithms ssh-p256-dilithium2,ssh-ed25519,ecdsa-sha2-nistp256
+PubkeyAcceptedKeyTypes ssh-p256-dilithium2,ssh-ed25519,ecdsa-sha2-nistp256
 
 StrictHostKeyChecking no
