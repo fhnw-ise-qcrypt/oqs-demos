@@ -19,7 +19,7 @@ fi
 if [ "x$SIG" != "x" ]; then
     OPTIONS="${OPTIONS} -o HostKeyAlgorithms=ssh-${SIG} -o PubkeyAcceptedKeyTypes=ssh-${SIG}"
     SSH_DIR="/opt/oqssa/"
-    HOST_KEY_FILE="${SSH_DIR}/ssh_host_${SIG/-/_}_key"
+    HOST_KEY_FILE="${SSH_DIR}/ssh_host_${SIG//-/_}_key"
     OPTIONS="${OPTIONS} -h ${HOST_KEY_FILE}"
 fi
 
