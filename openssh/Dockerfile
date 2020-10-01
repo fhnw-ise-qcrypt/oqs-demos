@@ -6,17 +6,15 @@ ARG INSTALLDIR=/opt/oqssa
 # liboqs build defines (https://github.com/open-quantum-safe/liboqs/wiki/Customizing-liboqs)
 ARG LIBOQS_BUILD_DEFINES=
 
-# openssl build defines (https://github.com/open-quantum-safe/openssl#build-options)
-# ARG OPENSSH_BUILD_DEFINES="-DOQS_DEFAULT_GROUPS=p384_kyber768:X25519:kyber768:newhope1024cca"
-
-# Default root CA signature algorithm; can be set to any listed at https://github.com/open-quantum-safe/openssl#authentication
+# Default id and host key algorithm; can be set to any listed at https://github.com/open-quantum-safe/openssh#digital-signature
 ARG SIG="p256-dilithium2"
 
 # Define the degree of parallelism when building the image; leave the number away only if you know what you are doing
-ARG MAKE_DEFINES="-j 6"
+ARG MAKE_DEFINES="-j 2"
 
 # Define the username of the normal user
 ARG USER="oqs"
+ARG PASSWORD="oqs.pw"
 
 FROM alpine:3.11 as intermediate
 # Take in all global args
@@ -88,6 +86,7 @@ FROM alpine:3.11 as dev
 # Take in all global args
 ARG INSTALLDIR
 ARG USER
+ARG PASSWORD
 ARG SIG
 
 RUN apk update \
@@ -97,7 +96,7 @@ RUN apk update \
 COPY --from=intermediate ${INSTALLDIR} ${INSTALLDIR}
 
 # Create a normal user to be able to log into the system via ssh
-RUN addgroup --gid 1000 --system ${USER} && adduser --uid 1000 --system ${USER} --ingroup ${USER} --shell /bin/sh && passwd -d ${USER}
+RUN addgroup --gid 1000 --system ${USER} && adduser --uid 1000 --system ${USER} --ingroup ${USER} --shell /bin/sh && echo -e -e "${PASSWORD}\n${PASSWORD}" | passwd ${USER}
 
 # Create identity file for $USER and add public key to $USER's authorized keys for a localhost connection
 WORKDIR /home/${USER}/.ssh
@@ -107,7 +106,11 @@ RUN chmod 700 . && ${INSTALLDIR}/bin/ssh-keygen -t ssh-${SIG} -f id_${SIG//-/_} 
 ENV PATH="${INSTALLDIR}/bin:${PATH}"
 WORKDIR /home/${USER}
 
+# Pass some potentionally useful variables to environment
 USER root
+ENV OQS_SIG_DEFAULT=${SIG}
+ENV OQS_INSTALL_DIR=${INSTALLDIR}
+ENV OQS_USER=${USER}
 
 # set path to use 'new' openssh
 ENV PATH="${INSTALLDIR}/bin:${PATH}"

@@ -10,19 +10,20 @@
 # possible, but leave them commented.  Uncommented options override the
 # default value.
 
-KexAlgorithms kyber-768-sha384@openquantumsafe.org
-HostKeyAlgorithms ssh-p256-dilithium2
-PubkeyAcceptedKeyTypes ssh-p256-dilithium2
+KexAlgorithms ecdh-nistp384-kyber-1024-sha384@openquantumsafe.org,
+HostKeyAlgorithms ssh-p256-dilithium2,ssh-ed25519,ssh-ecdsa
+PubkeyAcceptedKeyTypes ssh-p256-dilithium2,ssh-ed25519,ssh-ecdsa
 
-Port 2222
+Port 22
 #AddressFamily any
 #ListenAddress 0.0.0.0
 #ListenAddress ::
 
 HostKey /opt/oqssa/ssh_host_p256_dilithium2_key
-HostKey /opt/oqssa/ssh_host_rsa_key
 HostKey /opt/oqssa/ssh_host_ecdsa_key
 HostKey /opt/oqssa/ssh_host_ed25519_key
+
+#HostKey /opt/oqssa/ssh_host_rsa_key
 
 # Ciphers and keying
 #RekeyLimit default none
