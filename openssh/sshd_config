@@ -20,7 +20,7 @@ Port 2222
 #ListenAddress ::
 
 HostKey /opt/oqssa/ssh_host_p256_dilithium2_key
-HostKey /opt/oqssa/ssh_host_ecdsa_sha2_nistp256_key
+#HostKey /opt/oqssa/ssh_host_ecdsa_sha2_nistp256_key
 HostKey /opt/oqssa/ssh_host_ed25519_key
 
 #HostKey /opt/oqssa/ssh_host_rsa_key

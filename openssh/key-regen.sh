@@ -7,7 +7,10 @@ if [ "x${EUID}" != "x0" ]; then
 fi
 
 
-# Experimental: ALL_PUBS=$(ls ~/.ssh/ | sed -n '/id_.*.pub/p')
+## Experimental: generate IDs based on the IdentityFiles in ssh_config
+# Get algorithms from ssh_config
+ID_ALGS=$(sed -n "s|^identityfile.*/id_||Ip" ${OQS_INSTALL_DIR}/ssh_config)
+
 # Regenerate existing IDs
 ID_DIR="/home/${OQS_USER}/.ssh"
 echo -n "Re-generate existing ${ID_DIR}/id_* files ..."
@@ -19,7 +22,7 @@ for FILE in ${ID_DIR}/id_*; do
     ALG=${ALG/#"id_"}
     ALG="ssh-${ALG//_/-}"
     rm ${FILE}
-    CMD="su oqs -c \"ssh-keygen -q -t $ALG -f $FILE -N ''\""
+    CMD="su ${OQS_USER} -c \"ssh-keygen -q -t $ALG -f $FILE -N ''\""
     # echo $CMD
     eval $CMD
 done
@@ -34,8 +37,8 @@ echo " done!"
 HOST_KEY_DIR=$(echo $OQS_INSTALL_DIR | sed 's:/*$::')
 echo -n "Re-generate host key files (in $OQS_INSTALL_DIR/) so they match the listed HostKeyAlgorithms in $OQS_INSTALL_DIR/sshd_config as only those will be offered..."
 
-# Get algorithms from ssh_config
-IFS=',' read -ra HOST_KEY_ALGS <<< $(sed -n "s/^hostkeyalgorithms[ \t=]//Ip" ${OQS_INSTALL_DIR}/sshd_config)
+# Get algorithms from sshd_config
+IFS=',' read -ra HOST_KEY_ALGS <<< $(sed -n "s/^hostkeyalgorithms[ \t=]*//Ip" ${OQS_INSTALL_DIR}/sshd_config)
 
 rm -f $OQS_INSTALL_DIR/ssh_host_*
 # Generate new host key for each found host key algorithm

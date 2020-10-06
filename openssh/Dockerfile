@@ -130,7 +130,11 @@ ENV PATH="${INSTALLDIR}/bin:${PATH}"
 ENV PATH="${INSTALLDIR}/test:${PATH}"
 ENV PATH="${INSTALLDIR}/scripts:${PATH}"
 
-# CMD [ "serverstart.sh" ]
-CMD ["sh", "-c", "rc-service sshd start; su oqs -c /bin/sh"]
-# USER ${USER}
 STOPSIGNAL SIGTERM
+
+# Expose port 2222 as this is the chosen ssh port for oqs-ssh
+EXPOSE 2222
+
+# Re-generate the host keys and start a shell
+WORKDIR /home/${OQS_USER}/
+CMD ["sh", "-c", "key-regen.sh; /bin/sh"]
