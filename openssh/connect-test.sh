@@ -1,8 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 
+SIG=${SIG_ALG:="p256-dilithium2"}
+KEM=${KEM_ALG:="ecdh-nistp384-kyber-1024"}
 
 # Correct id file exists? Create it if not
-
 SSH_DIR="/home/oqs/.ssh"
 SIG_ID_FILE="${SSH_DIR}/id_${SIG//-/_}"
 if [ "x${SIG}" != "x" ] && [ ! -e ${SIG_ID_FILE} ]; then
