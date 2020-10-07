@@ -10,18 +10,30 @@
 # possible, but leave them commented.  Uncommented options override the
 # default value.
 
+# Settings for OQS-OpenSSH
+
+# Key-Exchange Algorithms
 KexAlgorithms ecdh-nistp384-kyber-1024-sha384@openquantumsafe.org,curve25519-sha256
+
+# Host Key Algorithms, these determine the generated host keys
 HostKeyAlgorithms ssh-p256-dilithium2,ssh-ed25519,ecdsa-sha2-nistp256
+
+# Those determine the accepted public keys for public key authentication
 PubkeyAcceptedKeyTypes ssh-p256-dilithium2,ssh-ed25519,ecdsa-sha2-nistp256
 
+# The port sshd is listening on
 Port 2222
+
+# The host keys used for host authentication they should match they HostKeyAlgorithms (with all - replaced by _)
+HostKey /opt/oqssa/ssh_host_p256_dilithium2_key
+HostKey /opt/oqssa/ssh_host_ecdsa_sha2_nistp256_key
+HostKey /opt/oqssa/ssh_host_ed25519_key
+
+
+# Settings for Classic SSH
 #AddressFamily any
 #ListenAddress 0.0.0.0
 #ListenAddress ::
-
-HostKey /opt/oqssa/ssh_host_p256_dilithium2_key
-#HostKey /opt/oqssa/ssh_host_ecdsa_sha2_nistp256_key
-HostKey /opt/oqssa/ssh_host_ed25519_key
 
 #HostKey /opt/oqssa/ssh_host_rsa_key
 

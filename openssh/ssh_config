@@ -47,21 +47,26 @@
 #
 
 # Settings for Quantum-Safe Key-Exchange and Authentication
-Port 2222
 
+# Key-Exchange Algorithms
 KexAlgorithms ecdh-nistp384-kyber-1024-sha384@openquantumsafe.org,curve25519-sha256
 
-HostKeyAlgorithms ssh-p256-dilithium2,ssh-ed25519,ecdsa-sha2-nistp256
-PubkeyAcceptedKeyTypes ssh-p256-dilithium2,ssh-ed25519,ecdsa-sha2-nistp256
+# The Host Key Algorithms ssh accepts
+HostKeyAlgorithms ssh-p256-dilithium2,ssh-ed25519
 
-StrictHostKeyChecking no
+# The Algorithms used for public key authentication
+PubkeyAcceptedKeyTypes ssh-p256-dilithium2,ssh-ed25519
 
-# All IdentityFile options
+#StrictHostKeyChecking no
+
+# The port ssh is connecting to per default
+Port 2222
+
+# All IdentityFile options, enabled ones should match PubkeyAcceptedKeyTypes
 # IdentityFile ~/.ssh/id_rsa
 # IdentityFile ~/.ssh/id_dsa
-# IdentityFile ~/.ssh/id_ecdsa_sha2_nistp256
-# IdentityFile ~/.ssh/id_ed25519
-# IdentityFile ~/.ssh/id_xmss
+# IdentityFile ~/.ssh/id_ecdsa
+IdentityFile ~/.ssh/id_ed25519
 # IdentityFile ~/.ssh/id_oqsdefault
 # IdentityFile ~/.ssh/id_dilithium2
 # IdentityFile ~/.ssh/id_falcon512
@@ -78,7 +83,7 @@ StrictHostKeyChecking no
 # IdentityFile ~/.ssh/id_rsa3072_oqsdefault
 # IdentityFile ~/.ssh/id_p256_oqsdefault
 # IdentityFile ~/.ssh/id_rsa3072_dilithium2
-# IdentityFile ~/.ssh/id_p256_dilithium2
+IdentityFile ~/.ssh/id_p256_dilithium2
 # IdentityFile ~/.ssh/id_rsa3072_falcon512
 # IdentityFile ~/.ssh/id_p256_falcon512
 # IdentityFile ~/.ssh/id_rsa3072_mqdss3148

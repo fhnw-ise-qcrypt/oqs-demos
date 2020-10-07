@@ -10,7 +10,7 @@ ARG LIBOQS_BUILD_DEFINES=
 ARG SIG="p256-dilithium2"
 
 # Define the degree of parallelism when building the image; leave the number away only if you know what you are doing
-ARG MAKE_DEFINES="-j 2"
+ARG MAKE_DEFINES="-j2"
 
 # Define the username of the normal user
 ARG USER="oqs"
