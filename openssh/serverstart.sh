@@ -1,6 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
-OPTIONS=""
+[[ $DEBUGLVL -gt 1 ]] && set -ex
+
+OPTIONS=${OPTIONS:=""}
+
+SIG=${SIG_ALG:="p256-dilithium2"}
+KEM=${KEM_ALG:="ecdh-nistp384-kyber-1024"}
 
 # Optionally set port
 # if left empty, the options defined in sshd_config will be used
@@ -23,10 +28,9 @@ if [ "x$SIG" != "x" ]; then
     OPTIONS="${OPTIONS} -h ${HOST_KEY_FILE}"
 fi
 
-
 # Start the OQS SSH Daemon with the configuration as in /opt/oqssa/sshd_config
 CMD="/opt/oqssa/sbin/sshd ${OPTIONS}"
-[ "x${DEBUG}" == "xon" ] || [ "x${DEBUG}" == "xyes" ] && echo $CMD
+[[ $DEBUGLVL -gt 0 ]] && echo $CMD
 eval $CMD
 
 # Open a shell for local experimentation if not testing the connection

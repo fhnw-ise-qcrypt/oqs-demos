@@ -78,9 +78,8 @@ COPY --from=intermediate ${INSTALL_DIR} ${INSTALL_DIR}
 RUN addgroup --gid 1000 --system ${OQS_USER} && adduser --uid 1000 --system ${OQS_USER} --ingroup ${OQS_USER} --shell /bin/sh && echo -e -e "${OQS_PASSWORD}\n${OQS_PASSWORD}" | passwd ${OQS_USER}
 
 # Create identity file for $OQS_USER and add public key to $OQS_USER's authorized keys for a localhost connection
-USER ${OQS_USER}
 WORKDIR /home/${OQS_USER}/.ssh
-# RUN chown ${OQS_USER}:${OQS_USER} .
+RUN chown ${OQS_USER}:${OQS_USER} .
 
 # Pass some potentionally useful variables to environment
 USER root
