@@ -27,26 +27,22 @@ The Dockerfile
 - by default creates new identity files based on the already existent id files that where created during build
 - by default starts the openssh daemon.
 
-The signature algorithm for the host-key and the identity file is set to `p256-dilithium2` by default, but can be changed to any of the [supported OQS signature algorithms](https://github.com/open-quantum-safe/openssh#digital-signature) with the build argumemt to docker `--build-arg SIG_ALG=`*name-of-oqs-sig-algorithm*, e.g. as follows:
-```
-docker build -t oqs-curl --build-arg SIG_ALG=qteslapiii .
-```
+**Note for the interested**: The build process is two-stage with the final image only retaining all executables, libraries and include-files to utilize OQS-enabled openssh.
 
-**Note for the interested**: The build process is two-stage with the final image only retaining all executables, libraries and include-files to utilize OQS-enabled curl and openssl.
+Some runtime configuration options exist that can be optionally set via docker environment variables:
 
-Two further, runtime configuration option exist that can both be optionally set via docker environment variables:
+1) Disabling host key re-generation: By setting `REGEN_HOST_KEYS` to `no` the host keys won't automatically be re-generated. Keep in mind that this results in having **no** unique host keys on your running docker container. The default setting is re-generating the host keys.
 
-1) Setting the key exchange mechanism (KEM): By setting 'KEM_ALG' 
-to any of the [supported KEM algorithms built into OQS-OpenSSL](https://github.com/open-quantum-safe/openssl#key-exchange) one can run TLS using a KEM other than the default algorithm 'kyber512'. Example: `docker run -e KEM_ALG=newhope1024cca -it oqs-curl`. It is always necessary to also request use of this KEM algorithm by passing it to the invocation of `curl` with the `--curves` parameter, i.e. as such in the same example: `curl --curves newhope1024cca https://localhost:4433`.
+1) Disabling identity file re-generation: By setting `REGEN_IDS` to `no` the identity files in `~/.ssh/` won't automatically be re-generated. Keep in mind that this results in having **no** unique identity files on your running docker container.
 
-2) Setting the signature algorithm (SIG): By setting 'SIG_ALG' to any of the [supported OQS signature algorithms](https://github.com/open-quantum-safe/openssl#authentication) one can run TLS using a SIG other than the one set when building the image (see above). Example: `docker run -e SIG_ALG=picnicl1fs -it oqs-curl`.
+e.g. `docker run -e REGEN_IDS=no -dit oqs-openssh-img`
 
 #### Build type argument(s)
 
 The Dockerfile also facilitates building the underlying OQS library to different specifications (by setting the `--build-arg` variable `LIBOQS_BUILD_DEFINES` as defined [here](https://github.com/open-quantum-safe/liboqs/wiki/Customizing-liboqs).
 
 For example, with this build command
-```
+```bash
 docker build --build-arg LIBOQS_BUILD_DEFINES="-DOQS_USE_CPU_EXTENSIONS=OFF" -f Dockerfile -t oqs-curl-generic .
 ``` 
 a generic system without processor-specific runtime optimizations is built, thus ensuring execution on all computers (at the cost of maximum runtime performance).
@@ -57,7 +53,7 @@ Information how to use the image is [available in the separate file USAGE.md](US
 
 ## Build options
 
-The Dockerfile provided allows for significant customization of the image built:
+The Dockerfile provided allows for some customization of the image built:
 
 ### LIBOQS_BUILD_DEFINES
 
@@ -65,34 +61,26 @@ This permits changing the build options for the underlying library with the quan
 
 By default, the image is built such as to have maximum portability regardless of CPU type and optimizations available, i.e. to run on the widest possible range of cloud machines.
 
-### OPENSSL_BUILD_DEFINES
+### OPENSSH_BUILD_OPTIONS
 
-This permits changing the build options for the underlying openssl library containing the quantum safe algorithms. 
+This allows to configure some additional build options for building OQS-OpenSSH. Those options, if specified, will be appended to the `./configure` command as shown [here](https://github.com/open-quantum-safe/openssh#step-2-build-the-fork). Some parameters are already configured as they are essential to the build: `--with-libs`, `--prefix`, `--sysconfdir`, `--with-liboqs-dir`. 
 
-The default setting defines a range of default algorithms suggested for key exchange. For more information see [the documentation](https://github.com/open-quantum-safe/openssl#default-algorithms-announced).
+### INSTALL_DIR
 
-### SIG_ALG
+This defines the resultant location of the software installation.
 
-This defines the quantum-safe cryptographic signature algorithm for the internally generated (demonstration) CA and server certificates.
-
-The default value is 'dilithium3' but can be set to any value documented [here](https://github.com/open-quantum-safe/openssl#authentication).
-
-
-### INSTALL_PATH
-
-This defines the resultant location of the software installatiion.
-
-By default this is '/opt/oqssa'. It is recommended to not change this. Also, all [usage documentation](USAGE.md) assumes this path.
-
-### CURL_VERSION
-
-This defines the curl software version to be build into the image.
-
-The default version set is known to work OK and depends on a patch. Therefore changing it is *not* recommended.
+By default this is /opt/oqssa . It is recommended to not change this. Also, all [usage documentation](USAGE.md) assumes this path.
 
 ### MAKE_DEFINES
 
-Allow setting parameters to `make` operation, e.g., '-j nnn' where nnn defines the number of jobs run in parallel during build.
+Allow setting parameters to `make` operation, e.g., `-j nnn` where nnn defines the number of jobs run in parallel during build. 
 
-The default is conservative and known not to overload normal machines. If one has a very powerful (many cores, >64GB RAM) machine, passing larger numbers (or only '-j' for maximum parallelism) speeds up building considerably.
+The default is conservative and known not to overload normal machines (`-j 2`). If one has a very powerful (many cores, >64GB RAM) machine, passing larger numbers (or only `-j` for maximum parallelism) speeds up building considerably.
 
+### OQS_USER
+
+Defaults to `oqs`. The docker file creates a non-root user during build. The purpose of this user is to be a login-user for incoming ssh connections. This docker image is designed to be used in a practical way, and having root logging in for simply establishing a connection in a production environment is not considered practical.
+
+### OQS_PASSWORD
+
+Defaults to `oqs.pw`. This is the password for the `OQS_USER`. A password is needed to enable the authentication method 'password' for ssh.

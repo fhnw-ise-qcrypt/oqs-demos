@@ -46,15 +46,15 @@
 #   RekeyLimit 1G 1h
 #
 
-# Settings for Quantum-Safe Key-Exchange and Authentication
+### Settings for quantum-safe key-exchange and authentication
 
-# Key-Exchange Algorithms
+# Key-exchange algorithms
 KexAlgorithms ecdh-nistp384-kyber-1024-sha384@openquantumsafe.org,curve25519-sha256
 
-# The Host Key Algorithms ssh accepts
+# The host key algorithms ssh accepts
 HostKeyAlgorithms ssh-p256-dilithium2,ssh-ed25519
 
-# The Algorithms used for public key authentication
+# The algorithms used for public key authentication
 PubkeyAcceptedKeyTypes ssh-p256-dilithium2,ssh-ed25519
 
 #StrictHostKeyChecking no

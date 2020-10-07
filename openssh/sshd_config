@@ -10,12 +10,12 @@
 # possible, but leave them commented.  Uncommented options override the
 # default value.
 
-# Settings for OQS-OpenSSH
+### Settings for quantum-safe key-exchange and authentication
 
-# Key-Exchange Algorithms
+# Key-exchange algorithms
 KexAlgorithms ecdh-nistp384-kyber-1024-sha384@openquantumsafe.org,curve25519-sha256
 
-# Host Key Algorithms, these determine the generated host keys
+# Host key algorithms, these determine the generated host keys
 HostKeyAlgorithms ssh-p256-dilithium2,ssh-ed25519,ecdsa-sha2-nistp256
 
 # Those determine the accepted public keys for public key authentication
