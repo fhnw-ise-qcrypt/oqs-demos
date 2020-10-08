@@ -58,7 +58,7 @@ RUN autoreconf && ./configure \
     --with-liboqs-dir=/opt/ossh-src/oqs \
     ${OPENSSH_BUILD_OPTIONS} && \
     make ${MAKE_DEFINES} && \
-    make install
+    make install-nokeys
 
 ## second stage: Only create minimal image without build tooling and intermediate build results generated above:
 FROM alpine:3.11 as dev
