@@ -7,16 +7,23 @@ This directory contains a Dockerfile that builds the [OQS OpenSSH fork](https://
 [Install Docker](https://docs.docker.com/install) and run the following commands in this directory:
 
 1. Run `docker build -t oqs-openssh-img .` This will generate the image with a default QSC algorithm (`p256-dilithium2` -- see Dockerfile to change this).
+2. With `docker network create
 2. `docker run --name oqs-openssh-server -ditp 2222:2222 --rm oqs-openssh-img`
 This will start a docker container that has sshd listening for SSH connections on port 2222 and this port is forwarded to and accessible via `localhost:2222`.
 3. `docker run --rm --name oqs-openssh-client -dit oqs-openssh-img` will start a docker container with the same properties as `oqs-openssh-server` except the port 2222 is not published.
 4. You can hop on either of those two containers as a non-root user (oqs) to use the built in OQS-OpenSSH binaries or do other shenanigans by typing
 `docker exec -ti -u oqs oqs-openssh-server /bin/sh`
 Of course adjust the container's name accordingly if hopping onto the client.
-5. To figure out the target IP, you can type `docker exec -ti -u oqs oqs-openssh-server ifconfig` and look at the IP address of the `eth0` interface.
-6. Then connect to the server by typing `docker exec -ti -u oqs oqs-openssh-client ssh <target-ip>` and authenticating the user `oqs` with it's default password `oqs.pw`.
 
-As server and client are based on the same image, connecting from the server to the client's ssh daemon is possible as well.
+### Connect from container to container via OQS-SSH
+
+1. To connect to another docker container, we first need to create a docker network by typing `docker network create oqs-openssh-net`.
+
+1. Then connect the containers to this network by typing `docker network connect oqs-openssh-net <name-of-container>` where `<name-of-container>` is once the server's and once the client's name.
+
+1. Then connect to the server by typing `docker exec -ti oqs-openssh-client ssh oqs@oqs-openssh-server` and authenticating the user `oqs` with it's default password `oqs.pw`.
+
+As server and client are based on the same image, connecting from the server to the client's ssh daemon is possible as well. In the command above replace `server` with `client` and vise-versa.
 
 ## More details
 
