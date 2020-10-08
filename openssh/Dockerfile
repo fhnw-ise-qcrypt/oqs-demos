@@ -56,9 +56,13 @@ RUN autoreconf && ./configure \
     --prefix=${INSTALL_DIR} \
     --sysconfdir=${INSTALL_DIR} \
     --with-liboqs-dir=/opt/ossh-src/oqs \
-    ${OPENSSH_BUILD_OPTIONS} && \
-    make ${MAKE_DEFINES} && \
+    --with-mantype=man \
+    ${OPENSSH_BUILD_OPTIONS}
+RUN make ${MAKE_DEFINES} && \
     make install-nokeys
+
+CMD ["sh"]
+STOPSIGNAL SIGTERM
 
 ## second stage: Only create minimal image without build tooling and intermediate build results generated above:
 FROM alpine:3.11 as dev
@@ -69,7 +73,7 @@ ARG OQS_PASSWORD
 
 RUN apk update \
     && apk upgrade \
-    && apk add bash
+    && apk add man bash
 
 # Only retain the ${INSTALL_DIR} contents in the final image
 COPY --from=intermediate ${INSTALL_DIR} ${INSTALL_DIR}

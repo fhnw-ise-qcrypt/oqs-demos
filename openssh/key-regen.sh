@@ -9,7 +9,7 @@ if [ "x${EUID}" != "x0" ]; then
     exit 1
 fi
 
-# Check if identities should be re-generated
+# Check if identity keys should be re-generated
 if [ "x${REGEN_IDS^^}" == "xYES" ] || [ "x${REGEN_IDS^^}" == "xON" ]; then
     # Get all active identity files from ssh_config and generate a file for each
     ID_DIR="/home/${OQS_USER}/.ssh"

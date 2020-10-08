@@ -57,7 +57,8 @@ HostKeyAlgorithms ssh-p256-dilithium2,ssh-ed25519
 # The algorithms used for public key authentication
 PubkeyAcceptedKeyTypes ssh-p256-dilithium2,ssh-ed25519
 
-#StrictHostKeyChecking no
+# Define how unknown host keys should be handled
+#StrictHostKeyChecking ask
 
 # The port ssh is connecting to per default
 Port 2222

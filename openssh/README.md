@@ -60,7 +60,13 @@ Information how to use the image is [available in the separate file USAGE.md](US
 
 ## Build options
 
-The Dockerfile provided allows for some customization of the image built:
+The Dockerfile provided allows for some customization of the image built. Those build arguments can be used at buildtime via the flag `--build-arg`, e.g. `docker build --build-arg INSTALL_DIR="/some/directory/" -t myimage .`.
+
+### INSTALL_DIR
+
+This defines the resultant location of the software installation.
+
+By default this is `/opt/oqssa` . It is recommended to not change this. Also, all [usage documentation](USAGE.md) assumes this path.
 
 ### LIBOQS_BUILD_DEFINES
 
@@ -70,19 +76,23 @@ By default, the image is built such as to have maximum portability regardless of
 
 ### OPENSSH_BUILD_OPTIONS
 
-This allows to configure some additional build options for building OQS-OpenSSH. Those options, if specified, will be appended to the `./configure` command as shown [here](https://github.com/open-quantum-safe/openssh#step-2-build-the-fork). Some parameters are already configured as they are essential to the build: `--with-libs`, `--prefix`, `--sysconfdir`, `--with-liboqs-dir`. 
-
-### INSTALL_DIR
-
-This defines the resultant location of the software installation.
-
-By default this is /opt/oqssa . It is recommended to not change this. Also, all [usage documentation](USAGE.md) assumes this path.
+This allows to configure some additional build options for building OQS-OpenSSH. Those options, if specified, will be appended to the `./configure` command as shown [here](https://github.com/open-quantum-safe/openssh#step-2-build-the-fork). Some parameters are configured as follows in the Dockerfile as they are essential to the build:
+```bash
+./configure \
+    --with-libs=-lm \
+    --prefix=${INSTALL_DIR} \
+    --sysconfdir=${INSTALL_DIR} \
+    --with-liboqs-dir=/opt/ossh-src/oqs \
+    --with-mantype=man \
+    ${OPENSSH_BUILD_OPTIONS}
+```
+They will be overridden if specified again in `OPENSSH_BUILD_OPTIONS`.
 
 ### MAKE_DEFINES
 
 Allow setting parameters to `make` operation, e.g., `-j nnn` where nnn defines the number of jobs run in parallel during build. 
 
-The default is conservative and known not to overload normal machines (`-j 2`). If one has a very powerful (many cores, >64GB RAM) machine, passing larger numbers (or only `-j` for maximum parallelism) speeds up building considerably.
+The default is conservative and known not to overload normal machines (default: `-j 2`). If one has a very powerful (many cores, >64GB RAM) machine, passing larger numbers (or only `-j` for maximum parallelism) speeds up building considerably.
 
 ### OQS_USER
 
