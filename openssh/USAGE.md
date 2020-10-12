@@ -1,3 +1,5 @@
+# The current state of this file is HEAVY WIP! Use with great caution or probably best: not at all ;-)
+
 ## Purpose 
 
 This is an [apache httpd](https://httpd.apache.org) docker image building on the [OQS OpenSSL 1.1.1 fork](https://github.com/open-quantum-safe/openssl), which allows httpd to negotiate quantum-safe keys and use quantum-safe authentication using TLS 1.3.
