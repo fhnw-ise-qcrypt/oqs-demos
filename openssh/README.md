@@ -15,6 +15,13 @@ This will start a docker container that has sshd listening for SSH connections o
 `docker exec -ti -u oqs oqs-openssh-server /bin/sh`
 Of course adjust the container's name accordingly if hopping onto the client.
 
+It is possible that the `docker build [...]` command fails with something like `Got permission denied while trying to connect to the Docker daemon socket [...]`. That is because the active user isn't member of the `docker` group. To fix this, run:
+```bash
+usermod -aG docker <user>
+newgrp docker
+```
+The first command adds user `<user>` to the group docker, and the second simulates a logout/login, so this does not have to be done seperately.
+
 ### Connect from container to container via OQS-SSH
 
 1. To connect to another docker container, we first need to create a docker network by typing `docker network create oqs-openssh-net`.
