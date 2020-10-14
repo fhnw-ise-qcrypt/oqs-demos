@@ -1,4 +1,4 @@
-# The current state of this file is HEAVY WIP! Use with great caution or probably best: not at all ;-)
+# The current state of this file is HEAVY WIP! It contains NO information about this docker project as it is just copied from another project so far
 
 ## Purpose 
 
