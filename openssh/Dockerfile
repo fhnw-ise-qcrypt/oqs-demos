@@ -64,7 +64,8 @@ RUN make ${MAKE_DEFINES} && \
 CMD ["sh"]
 STOPSIGNAL SIGTERM
 
-## second stage: Only create minimal image without build tooling and intermediate build results generated above:
+## second stage: Only create minimal image without build tooling and intermediateUSER root
+ build results generated above:
 FROM alpine:3.11 as dev
 # Take in all global args
 ARG INSTALL_DIR
@@ -122,4 +123,4 @@ EXPOSE 2222
 
 # Re-generate the host keys and start a shell
 WORKDIR /home/${OQS_USER}/
-CMD ["sh", "-c", "key-regen.sh; /bin/sh"]
+CMD ["sh", "-c", "RESTART_SSHD=yes key-regen.sh; /bin/sh"]
