@@ -122,4 +122,4 @@ EXPOSE 2222
 
 # Re-generate the host keys and start a shell
 WORKDIR /home/${OQS_USER}/
-CMD ["sh", "-c", "key-regen.sh; /bin/sh"]
+CMD ["sh", "-c", "RESTART_SSHD=yes key-regen.sh; /bin/sh"]
