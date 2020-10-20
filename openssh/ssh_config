@@ -49,7 +49,7 @@
 ### Settings for quantum-safe key-exchange and authentication
 
 # Key-exchange algorithms
-KexAlgorithms ecdh-nistp384-kyber-1024-sha384@openquantumsafe.org,curve25519-sha256
+KexAlgorithms ecdh-nistp384-kyber-1024-sha384@openquantumsafe.org,ecdh-sha2-nistp512,curve25519-sha256@libssh.org
 
 # The host key algorithms ssh accepts
 HostKeyAlgorithms ssh-p256-dilithium2,ssh-ed25519
