@@ -81,6 +81,9 @@ COPY --from=intermediate ${INSTALL_DIR} ${INSTALL_DIR}
 # Create a normal user to be able to log into the system via ssh
 RUN addgroup --gid 1000 --system ${OQS_USER} && adduser --uid 1000 --system ${OQS_USER} --ingroup ${OQS_USER} --shell /bin/sh && echo -e -e "${OQS_PASSWORD}\n${OQS_PASSWORD}" | passwd ${OQS_USER}
 
+# Set up login shell: Add ssh-binaries to path for ssh login shell, fix /etc/profile not executing /etc/profile.d/*
+RUN sed -i "s|PATH=|PATH=${INSTALL_DIR}/bin:|;s|/etc/profile.d/\*\.sh|/etc/profile.d/\*|" /etc/profile
+
 # Create identity file for $OQS_USER and add public key to $OQS_USER's authorized keys for a localhost connection
 WORKDIR /home/${OQS_USER}/.ssh
 RUN chown ${OQS_USER}:${OQS_USER} .
