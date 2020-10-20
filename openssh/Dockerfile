@@ -89,7 +89,6 @@ WORKDIR /home/${OQS_USER}/.ssh
 RUN chown ${OQS_USER}:${OQS_USER} .
 
 # Pass some potentionally useful variables to environment
-USER root
 ENV OQS_INSTALL_DIR=${INSTALL_DIR}
 ENV OQS_USER=$OQS_USER
 
