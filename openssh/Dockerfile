@@ -64,8 +64,7 @@ RUN make ${MAKE_DEFINES} && \
 CMD ["sh"]
 STOPSIGNAL SIGTERM
 
-## second stage: Only create minimal image without build tooling and intermediateUSER root
- build results generated above:
+## second stage: Only create minimal image without build tooling and intermediateUSER root build results generated above:
 FROM alpine:3.11 as dev
 # Take in all global args
 ARG INSTALL_DIR
