@@ -7,12 +7,14 @@ description_reload="Reload configuration"
 extra_commands="checkconfig"
 extra_started_commands="reload"
 
+OQS_INSTALL_DIR="/opt/oqssa"
+
 # NOTE: SSHD_* variables are deprecated and will be removed in future!
 : ${sshd_disable_keygen:="${SSHD_DISABLE_KEYGEN:-"yes"}"}
-: ${cfgfile:=${SSHD_CONFIG:-"${SSHD_CONFDIR:-"/opt/oqssa"}/sshd_config"}}
+: ${cfgfile:=${SSHD_CONFIG:-"${SSHD_CONFDIR:-${OQS_INSTALL_DIR}}/sshd_config"}}
 
 pidfile="${SSHD_PIDFILE:-"/run/$RC_SVCNAME.pid"}"
-command="${SSHD_BINARY:-"/opt/oqssa/sbin/sshd"}"
+command="${SSHD_BINARY:-"${OQS_INSTALL_DIR}/sbin/sshd"}"
 command_args="${command_args:-${SSHD_OPTS:-}}"
 
 required_files="$cfgfile"
@@ -61,7 +63,7 @@ checkconfig() {
         [ "$pidfile" != "/run/sshd.pid" ] \
                 && command_args="$command_args -o PidFile=$pidfile"
 
-        [ "$cfgfile" != "/opt/oqssa/sshd_config" ] \
+        [ "$cfgfile" != "${OQS_INSTALL_DIR}/sshd_config" ] \
                 && command_args="$command_args -f $cfgfile"
 
         "$command" -t $command_args || return 1

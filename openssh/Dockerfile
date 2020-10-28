@@ -93,11 +93,12 @@ ENV OQS_INSTALL_DIR=${INSTALL_DIR}
 ENV OQS_USER=$OQS_USER
 
 # Enable ssh deamon to start at boot
-COPY sshd /etc/init.d/
+COPY oqs-sshd /etc/init.d/
+RUN sed -in "s:/opt/oqssa:${INSTALL_DIR}:g" /etc/init.d/oqs-sshd
 RUN apk add openrc \
     && mkdir -p /run/openrc \
     && touch /run/openrc/softlevel \
-    && rc-update add sshd \
+    && rc-update add oqs-sshd \
     && rc-status
 
 # Fix error "/lib/rc/sh/openrc-run.sh: line 100: can't create /sys/fs/cgroup/*/*: Read-only file system"

@@ -131,3 +131,4 @@ Subsystem	sftp	/opt/oqssa/libexec/sftp-server
 #	AllowTcpForwarding no
 #	PermitTTY no
 #	ForceCommand cvs server
+ecdh-nistp384-kyber-1024-sha384@openquantumsafe.org

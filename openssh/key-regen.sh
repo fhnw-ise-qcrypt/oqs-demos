@@ -74,5 +74,5 @@ done
 
 if [ "x$RESTART_SSHD" != "x" ]; then
     echo ""
-    rc-service sshd restart
+    rc-service oqs-sshd restart
 fi
