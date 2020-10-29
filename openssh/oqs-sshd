@@ -7,7 +7,7 @@ description_reload="Reload configuration"
 extra_commands="checkconfig"
 extra_started_commands="reload"
 
-OQS_INSTALL_DIR="/opt/oqssa"
+OQS_INSTALL_DIR="/opt/oqs-ssh"
 
 # NOTE: SSHD_* variables are deprecated and will be removed in future!
 : ${sshd_disable_keygen:="${SSHD_DISABLE_KEYGEN:-"yes"}"}
@@ -60,7 +60,7 @@ checkconfig() {
                 ssh-keygen -A || return 1
         fi
 
-        [ "$pidfile" != "/run/sshd.pid" ] \
+        [ "$pidfile" != "/run/oqs-sshd.pid" ] \
                 && command_args="$command_args -o PidFile=$pidfile"
 
         [ "$cfgfile" != "${OQS_INSTALL_DIR}/sshd_config" ] \

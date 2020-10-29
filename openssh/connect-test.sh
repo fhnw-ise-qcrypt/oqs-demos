@@ -11,7 +11,7 @@ KEM=${KEM_ALG:="ecdh-nistp384-kyber-1024"}
 # Correct id file exists? Create it if not
 SSH_DIR="/home/${OQS_USER}/.ssh"
 SIG_ID_FILE="${SSH_DIR}/id_${SIG//-/_}"
-su ${OQS_USER} -c "/opt/oqssa/bin/ssh-keygen -t ssh-${SIG} -f ${SIG_ID_FILE} -N \"\" -q"
+su ${OQS_USER} -c "${OQS_INSTALL_DIR}/bin/ssh-keygen -t ssh-${SIG} -f ${SIG_ID_FILE} -N \"\" -q"
 cat ${SIG_ID_FILE}.pub >> ${SSH_DIR}/authorized_keys
 [[ $DEBUGLVL -gt 0 ]] && echo "Debug1: New key '${SIG_ID_FILE}(.pub)' created!"
 OPTIONS="${OPTIONS} -i ${SIG_ID_FILE}"

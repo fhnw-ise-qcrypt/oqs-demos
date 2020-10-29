@@ -23,13 +23,13 @@ fi
 # if left empty, the options defined in sshd_config will be used
 if [ "x$SIG" != "x" ]; then
     OPTIONS="${OPTIONS} -o HostKeyAlgorithms=ssh-${SIG} -o PubkeyAcceptedKeyTypes=ssh-${SIG}"
-    SSH_DIR="/opt/oqssa/"
+    SSH_DIR=${OQS_INSTALL_DIR}
     HOST_KEY_FILE="${SSH_DIR}/ssh_host_${SIG//-/_}_key"
     OPTIONS="${OPTIONS} -h ${HOST_KEY_FILE}"
 fi
 
-# Start the OQS SSH Daemon with the configuration as in /opt/oqssa/sshd_config
-CMD="/opt/oqssa/sbin/sshd ${OPTIONS}"
+# Start the OQS SSH Daemon with the configuration as in ${OQS_INSTALL_DIR}/sshd_config
+CMD="${OQS_INSTALL_DIR}/sbin/sshd ${OPTIONS}"
 [[ $DEBUGLVL -gt 0 ]] && echo $CMD
 eval $CMD
 

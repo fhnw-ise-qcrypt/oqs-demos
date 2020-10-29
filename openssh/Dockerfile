@@ -1,7 +1,8 @@
 # Multi-stage build: First the full builder image:
 
 # Default location where all binaries wind up:
-ARG INSTALL_DIR=/opt/oqssa
+ARG DEFAULT_INSTALL_DIR=/opt/oqs-ssh
+ARG INSTALL_DIR=${DEFAULT_INSTALL_DIR}
 
 # liboqs build defines (https://github.com/open-quantum-safe/liboqs/wiki/Customizing-liboqs)
 ARG LIBOQS_BUILD_DEFINES=
@@ -67,6 +68,7 @@ STOPSIGNAL SIGTERM
 ## second stage: Only create minimal image without build tooling and intermediate build results generated above:
 FROM alpine:3.11 as dev
 # Take in all global args
+ARG DEFAULT_INSTALL_DIR
 ARG INSTALL_DIR
 ARG OQS_USER
 ARG OQS_PASSWORD
@@ -94,7 +96,7 @@ ENV OQS_USER=$OQS_USER
 
 # Enable ssh deamon to start at boot
 COPY oqs-sshd /etc/init.d/
-RUN sed -in "s:/opt/oqssa:${INSTALL_DIR}:g" /etc/init.d/oqs-sshd
+RUN sed -ri "s:${DEFAULT_INSTALL_DIR}:${INSTALL_DIR}:g" /etc/init.d/oqs-sshd
 RUN apk add openrc \
     && mkdir -p /run/openrc \
     && touch /run/openrc/softlevel \
@@ -106,10 +108,15 @@ RUN sed -ri '269 s/cgroup_add_service/#cgroup_add_service/' /lib/rc/sh/openrc-ru
 
 # Copy scripts
 COPY sshd_config ${INSTALL_DIR}
+RUN sed -ri "s:${DEFAULT_INSTALL_DIR}:${INSTALL_DIR}:g" ${INSTALL_DIR}/sshd_config
 COPY ssh_config ${INSTALL_DIR}
+RUN sed -ri "s:${DEFAULT_INSTALL_DIR}:${INSTALL_DIR}:g" ${INSTALL_DIR}/ssh_config
 COPY serverstart.sh ${INSTALL_DIR}/test/
+# RUN sed -in "s:${DEFAULT_INSTALL_DIR}:${INSTALL_DIR}:g" ${INSTALL_DIR}/serverstart.sh
 COPY connect-test.sh ${INSTALL_DIR}/test/
+# RUN sed -in "s:${DEFAULT_INSTALL_DIR}:${INSTALL_DIR}:g" ${INSTALL_DIR}/connect-test.sh
 COPY key-regen.sh ${INSTALL_DIR}/scripts/
+# RUN sed -in "s:${DEFAULT_INSTALL_DIR}:${INSTALL_DIR}:g" ${INSTALL_DIR}/key-regen.sh
 
 # set path to use 'new' openssh
 ENV PATH="${INSTALL_DIR}/bin:${PATH}"
