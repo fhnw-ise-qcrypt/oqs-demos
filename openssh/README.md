@@ -6,9 +6,9 @@ This directory contains a Dockerfile that builds the [OQS OpenSSH fork](https://
 
 [Install Docker](https://docs.docker.com/install) and run the following commands in this directory:
 
-1. Run `docker build -t oqs-openssh-img .` This will generate the image with a default QSC algorithm (`p256-dilithium2` -- see Dockerfile to change this).
+1. Run `docker build -t oqs-openssh-img .` This will generate the image
 2. With `docker network create
-2. `docker run --name oqs-openssh-server -ditp 2222:2222 --rm oqs-openssh-img`
+3. `docker run --name oqs-openssh-server -ditp 2222:2222 --rm oqs-openssh-img`
 This will start a docker container that has sshd listening for SSH connections on port 2222 and this port is forwarded to and accessible via `localhost:2222`.
 3. `docker run --rm --name oqs-openssh-client -dit oqs-openssh-img` will start a docker container with the same properties as `oqs-openssh-server` except the port 2222 is not published.
 4. You can hop on either of those two containers as a non-root user (oqs) to use the built in OQS-OpenSSH binaries or do other shenanigans by typing
@@ -73,7 +73,7 @@ The Dockerfile provided allows for some customization of the image built. Those 
 
 This defines the resultant location of the software installation.
 
-By default this is `/opt/oqssa` . It is recommended to not change this. Also, all [usage documentation](USAGE.md) assumes this path.
+By default this is `/opt/oqs-ssh`. When it is changed, every occurrence of this default path is replaced with it at build time. That means that for example the `ssh_config` file copied to the container can differ from the original [ssh_config](ssh_config) because it is edited during build.
 
 ### LIBOQS_BUILD_DEFINES
 

@@ -1,192 +1,113 @@
-# The current state of this file is HEAVY WIP! It contains NO information about this docker project as it is just copied from another project so far
-
 ## Purpose 
 
-This is an [apache httpd](https://httpd.apache.org) docker image building on the [OQS OpenSSL 1.1.1 fork](https://github.com/open-quantum-safe/openssl), which allows httpd to negotiate quantum-safe keys and use quantum-safe authentication using TLS 1.3.
+This is an [opensshd](https://https.openssh.com) docker image based on the [OQS OpenSSH 7.9 fork](https://github.com/open-quantum-safe/openssh), which allows ssh to quantum-safely negotiate session keys and use quantum-safe authentication with algorithms from the [Post-Quanum Cryptography Project by NIST](https://csrc.nist.gov/projects/post-quantum-cryptography) 
 
-If you built the docker image yourself following the instructions [here](https://github.com/open-quantum-safe/oqs-demos/tree/master/httpd), exchange the  name of the image from 'openquantumsafe/httpd' in the examples below suitably.
 
-This image has a built-in non-root user to permit execution without particular [docker privileges](https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities) such as to allow installation in all types of Kubernetes clusters.
+This image has a built-in non-root user to permit execution without particular [docker privileges](https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities). This is necessary as loging in as root in ssh is not recommended practice. But is worth to note that this user, per default called `oqs`, is not set as the default user when the image starts (which would be done with `USER oqs` in the [Dockerfile](Dockerfile)). The reason for that is that the the start up script needs root permissions to generate all host keys and start the sshd service. This means that when executing a command as the user `oqs`, the `docker exec` command needs to be used together with the option `--user oqs`.
+
 
 ## Quick start 
 
-Assuming Docker is [installed](https://docs.docker.com/install) the following command 
-
-```
-docker run -p 4433:4433 openquantumsafe/httpd
-```
-
-will start up the QSC-enabled httpd running and listening for quantum-safe crypto protected TLS 1.3 connections on port 4433.
-
-To retrieve a test page, a quantum-safe crypto client program is required. For the most simple use case, use the [docker image for curl](https://hub.docker.com/r/openquantumsafe/curl) with the required quantum-safe crypto enablement. 
-
-If you started the OQS-httpd image on a machine with a registered IP name the required command is simply
-
-```
-docker run -it openquantumsafe/curl curl -k https://<ip-name-of-testmachine>:4433
-```
-
-If you try this on your local computer, you need to execute both images within one docker network as follows:
-
-```
-docker network create httpd-test
-docker run --network httpd-test --name oqs-httpd -p 4433:4433 openquantumsafe/httpd
-docker run --network httpd-test -it openquantumsafe/curl curl -k https://oqs-httpd:4433
-```
+How to set up your quantum-safe OpenSSH is described in the corresponding [README.md](README.md).
 
 ## Slightly more advanced usage options
 
-This httpd image supports all quantum-safe key exchange algorithms [presently supported by OQS-OpenSSL](https://github.com/open-quantum-safe/openssl#key-exchange). If you want to control with algorithm is actually used, you can request one from the list above to the curl command with the '--curves' parameter, e.g., requesting the hybrid Kyber768 variant:
+### Change install location
 
-```
-docker run -it openquantumsafe/curl curl -k https://oqs-httpd:4433  --curves p384_kyber768
-```
+The OQS-OpenSSH binaries, configuration files and host keys are located in the default install location `/opt/oqs-ssh/`. This location can be changed at build time with `--build-arg INSTALL_DIR=</path/to/new/location>`.
 
+### Access the man pages of oqs-ssh
+
+Man pages for oqs-ssh are installed in `<INSTALL_DIR>/share/man` and can be viewed by for example `man -l <INSTALL_DIR>/share/man/man1/ssh.1` or `man -l <INSTALL_DIR>/share/man/man5/ssh.5`. Note that those man pages are **not** different from the original ssh man pages. So it might be easier to consult them on your local system or the internet. 
+
+Direct links to man pages: [ssh](https://linux.die.net/man/1/ssh), [sshd](https://linux.die.net/man/8/sshd), [ssh_config](https://linux.die.net/man/5/ssh_config), [sshd_config](https://linux.die.net/man/5/sshd_config)
 
 ## Seriously more advanced usage options
 
-### httpd configuration
+### Choosing the algorithms
 
-If you want to adapt the docker image to your needs you may want to change the httpd configuration file. To facilitate this, you just need to mount your own 'httpd.conf' file into the image at the path `/opt/httpd/httpd-conf`. Assuming you stored your own file `httpd.conf` into a local folder named `httpd-conf` the required command would look like this:
+The image's default algorithms are `ecdh-nistp384-kyber-1024-sha384@openquantumsafe.org` for key-exchange with `curve25519-sha256` for backwards compatibility and `ssh-p256-dilithium2` with backwards compatible `ssh-ed25519` as host and identity key algorithms. Those defaults may be changed by adjusting the files `ssh_config` and `sshd_config` respectively. In the finished image, those files are located in the default install location (see above). After changing something in `sshd_config`, the sshd must be restarted using `rc-service oqs-sshd restart`. Alternatively, the configuration can be changed **pre**-build by changing [ssh_config](ssh_config) or [sshd_config](sshd_config) and rebuilding the image.
 
+Be aware that configuration for sshd and for ssh can be different as long as you don't want to connect to yourself. So can for example ssh be configured like a classical ssh client and sshd only support post-quantum algorithms with no backwards compatibility at all.
+
+### Key re-generation
+
+WIP
+
+## Using oqs-ssh for quantum-safe remote access with minimal intrusion
+
+One use case of quantum-safe ssh running in docker could be accessing a remote system without messing with its ssh(d) installation. This means minimal intrusion and everything can be easily removed again. This is done by running this docker image on said system and sharing its network space. Thus it is possible to access host ports from **within** the docker container. Normally, the use case of docker is one of isolation with some shared directories and published ports at max. So this solution works around the usual docker limitations.
+
+Additionally, it is advised to **change the default username and password** when building the image because your plan is to expose it to the world.
+
+```html
+Structure of quantum-safe remote access using docker containers
+
++------------------+                +----------------------+
+|      Client      |                |         Host         |
+|  +------------+  |                |  +----------------+  |
+|  |            |  |                |  |                |  |
+|  |   Docker   +--------------------->+     Docker     |  |
+|  |            |  |       Port 2222|  |                |  |
+|  +------------+  |                |  +-------+--------+  |
+|                  |                |          |           |
++------------------+                |  Port 22 v           |
+                                    |  +-------+--------+  |
+                                    |  |                |  |
+                                    |  |  sshd on host  |  |
+                                    |  |                |  |
+                                    |  +----------------+  |
+                                    |                      |
+                                    +----------------------+
 ```
-docker run -p 4433:4433 -v `pwd`/httpd-conf:/opt/httpd/httpd-conf openquantumsafe/httpd
+### Set up the server (docker container on target-host)
+
+To start the ssh server, meaning the docker container on the host system, follow those instructions:
+- Build the docker image as usual, change username and password
+       
+       docker build --build-arg OQS_USER=<my-desired-username> --build-arg OQS_PASSWORD=<my-desired-password> -t oqs-openssh-img .
+- Run the docker image with
+
+       docker run -dit --network host --name oqs-ssh oqs-ssh-img
+
+- Or, if you want the container to automatically start with docker
+
+       docker run -dit --network host --name oqs-ssh --restart unless-stopped oqs-openssh-img
+
+The `--network host` option will attach the container directly to your host's network, sharing its IP. The sshd in the container is now accessible from the outside using the host's IP address and the specified port (2222 per default).
+
+Be aware that the port 2222 also needs to be open in any firewall's there may be!
+
+### Set up the client
+
+For the client side, you need to compile yourself a docker image as described in the 'Quick start' section of the [README.md](README.md). You then run it as normal with
+```bash
+docker run -dit --name oqs-ssh oqs-ssh-img
 ```
-
-*Note*: Of particular interest is the parameter `SSLOpenSSLConfCmd Curves` as it can be used to set the (quantum safe) cryptographic algorithms supported by the httpd installation. See the example in the 'httpd.conf' built into the image and [accessible here](https://github.com/open-quantum-safe/oqs-demos/blob/master/httpd/httpd-conf/httpd.conf).
-
-### Logfile access
-
-The httpd logfiles are available in the docker-internal folder `/opt/httpd/logs`. Thus, if you want to look at them in the docker host, you can mount them into a local folder named 'httpd-logs' like this:
-
+after that you can run the ssh client directly
+```bash
+docker exec -it --user oqs oqs-ssh ssh <remote-docker-username>@<remote-host-ip> -p 2222
 ```
-docker run -p 4433:4433 -v `pwd`/httpd-logs:/opt/httpd/logs openquantumsafe/httpd
+You may omit `-p 2222` if this port is configured accordingly in `ssh_config` on the client (which is the default).
+You are then prompted to enter the password for the remote
+
+And most importantly, we can now access the host's sshd from within the docker image by addressing port 22 via the localhost, using the host's credentials.
+```bash
+ssh <username>@localhost -p 22
 ```
-
-### Validate server certificate
-
-If you look carefully at the curl command above, you will notice the option `-k` which turns off server certificate validation. In the quick start option, this is OK, but if you want to be sure that the set up can actually perform quantum-safe certificate validation, you need to retrieve the CA certificate pre-loaded into the httpd image in order to pass it to the curl command for validation. This is thus a two-step process:
-
-1) Extract CA certificate to local file 'CA.crt': `docker run -it openquantumsafe/httpd cat cacert/CA.crt > CA.crt`
-2) Make this certificate available to curl for verification
-
-```
-docker run -v `pwd`:/opt/cacert -it openquantumsafe/curl curl --cacert /opt/cacert/CA.crt https://<ip-name-of-testmachine>:4433
-```
-
-*Note*: This command will report a mismatch between the name of your machine and 'oqs-httpd', which is the name of the server built into the demo server certificate. Read below how to rectify this with your own server certificate.
-
-A completely successful call requires use of a local docker-network where the server name is ensured to match the one encoded in the certificate:
-
-```
-docker run --network httpd-test -v `pwd`:/opt/cacert -it openquantumsafe/curl curl --cacert /opt/cacert/CA.crt https://oqs-httpd:4433
-```
-
-## Completely standalone deployment
-
-For ease of demonstration, the OQS-httpd image comes with a server and CA certificate preloaded. For a real deployment, the installation of server-specific certificates is required. Also this can be facilitated by mounting your own server key and certificate into the image at the path '/opt/httpd/pki'. Again, assuming server certificate and key are placed in a local folder named `server-pki` the startup command would look like this:
-
-```
-docker run -p 4433:4433 -v `pwd`/server-pki:/opt/httpd/pki openquantumsafe/httpd
-```
-
-
-### Creating (test) CA and server certificates
-
-For creating the required keys and certificates, it is also possible to utilize the [openquantumsafe/curl](https://hub.docker.com/r/openquantumsafe/curl) image using standard `openssl` commands. 
-
-An example sequence is shown below, using 
-- 'qteslapi' for signing the CA certificate,
-- 'dilithium2' for signing the server certificate,
-- 'httpd.server.my.org' as the address of the server for which the certificate is intended.
-
-Instead of 'qteslapi' or 'dilithium2' any of the [quantum safe authentication algorithms presently supported](https://github.com/open-quantum-safe/openssl#authentication) can be used.
-
-```
-# create and enter directory to contain keys and certificates
-mkdir -p server-pki && cd server-pki
-
-# create CA key and certificate using qteslapi
-docker run -v `pwd`:/opt/tmp -it openquantumsafe/curl openssl req -x509 -new -newkey qteslapi -keyout /opt/tmp/CA.key -out /opt/tmp/CA.crt -nodes -subj "/CN=oqstest CA" -days 365
-
-# create server key using dilithium2
-docker run -v `pwd`:/opt/tmp -it openquantumsafe/curl openssl req -new -newkey dilithium2 -keyout /opt/tmp/server.key -out /opt/tmp/server.csr -nodes -subj "/CN=httpd.server.my.org"
-
-# create server certificate
-docker run -v `pwd`:/opt/tmp -it openquantumsafe/curl openssl x509 -req -in /opt/tmp/server.csr -out /opt/tmp/server.crt -CA /opt/tmp/CA.crt -CAkey /opt/tmp/CA.key -CAcreateserial -days 365
-```
-
-*Note*: You may want to leave away the `-nodes` option to the CA key generation command above to ensure the key is encrypted. You can then safe it for future use at another location.
+To omit the `-p 22`, the specification of the port, this can be set as default in `ssh_config`.
 
 ## Further options
 
-### openssl s_client
-
-You could also use the `openssl s_client` to connect to httpd if you want to follow the protocol more closely. A quantum-safe variant of this is also built-in to the [openquantumsafe/curl](https://hub.docker.com/r/openquantumsafe/curl) docker image. A possible invocation thus would be for example:
-
-```
-docker run --network httpd-test -it openquantumsafe/curl openssl s_client -connect oqs-httpd:4433
-```
-
-After successful session establishment, issue the command 'GET /' on the resultant command line to retrieve the contents of the httpd root page.
-
-For further options, refer to the [openssl s_client documentation](https://www.openssl.org/docs/man1.1.0/man1/openssl-s_client.html).
-
-*Note:* Should you fail to see the actual web server contents in the `openssl s_client` output, you may want to add the option `-ign_eof` to the command to see it, i.e., issue this command:
-
-```
-docker run --network httpd-test -it openquantumsafe/curl sh -c "echo 'GET /' | openssl s_client -connect oqs-httpd:4433 -ign_eof" 
-```
-
-
-### docker -name and --rm options
+### docker run --name and --rm options
 
 To ease rapid startup and teardown, we strongly recommend using the docker [--name](https://docs.docker.com/engine/reference/commandline/run/#assign-name-and-allocate-pseudo-tty---name--it) and automatic removal option [--rm](https://docs.docker.com/engine/reference/commandline/run/).
 
 ## List of specific configuration options at a glance
 
-### Port: 4433
+### Port: 2222
 
-Port at which httpd listens by default for quantum-safe TLS connections. Defined/changeable in `httpd.conf`.
-
-### httpd logfile folder: /opt/httpd/logs
-
-### httpd configuration folder location: /opt/httpd/httpd-conf
-
-This folder contains two files: `httpd.conf` for baseline httpd configuration and `httpd-ssl.conf` for all TLS/SSL specific configuration options.
-
-### httpd PKI location: /opt/httpd/pki
-
-#### Server key: /opt/httpd/pki/server.key
-
-#### Server certificate: /opt/httpd/pki/server.crt
-
-## Putting it all together
-
-If you want to run your own, fully customized quantum safe httpd installation on your machine you can do this with this docker image by running this command (assuming you followed the instructions above for generating your own server keys and certificates).
-
-```
-# Ensure UID is properly set for all bind-mounted folders, e.g. like this
-rm -rf httpd-logs && mkdir httpd-logs
-
-# Start image with all config folders bind-mounted
-docker run --rm --name httpd.server.my.org \
-       -p 4433:4433 \
-       -v `pwd`/httpd-logs:/opt/httpd/logs \
-       -v `pwd`/server-pki:/opt/httpd/pki \
-       -v `pwd`/httpd-conf:/opt/httpd/httpd-conf \
-       openquantumsafe/httpd
-```
-
-Validating that all works as desired can be done by retrieving a document using server validation and this command:
-
-```
-# Give curl access to CA certificate via bind-mount
-docker run -v `pwd`/server-pki:/opt/tmp -it openquantumsafe/curl \
-           curl --cacert /opt/tmp/CA.crt https://httpd.server.my.org:4433
-```
-
-Again, if you don't have your own server and want to test on a local machine, start both of them in a docker network (adding the option `--network httpd-test`). 
+Port at which (oqs-)sshd listens by default for quantum-safe ssh connections. Defined/changeable in `sshd_config`.
 
 ## Disclaimer
 
