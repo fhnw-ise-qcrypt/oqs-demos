@@ -32,8 +32,18 @@ Be aware that configuration for sshd and for ssh can be different as long as you
 
 ### Key re-generation
 
-WIP
+When the image is run normally (`docker run -it oqs-img -t oqs-ssh`) it invokes the script [key-regen.sh](key-regen.sh). It generates all host and identity keys that **do not exist** and **are necessary** according to the configuration files ([ssh_config](ssh_config) and [sshd_config](sshd_config)). Their necessity is determinded based on following parameters:
+1. `IdentityFile` for **identity keys**: For every entry (there may be multiple) the corresponding key is generated.
+   - e.g. `IdentityFile ~/.ssh/id_ed25519` or
+   - `IdentityFile ~/.ssh/id_p256_dilithium2`
+2. `HostKeyAlgorithms` for **host keys**: For every algorithm listed a host key will be generated.
+   - e.g. `HostKeyAlgorithms ssh-p256-dilithium2,ssh-ed25519`
 
+Note that the `key-regen.sh` script is executed as the `root` user.
+
+As mentioned above those keys will only be generated if they don't yet exist. So even though the script is executed every time a container is started (or run), it usually only does something the first time. If any host key was generated, the `sshd` service will be restarted.
+
+The location where `key-regen.sh` is looking for `ssh_config`/`sshd_config` is the install directory of `oqs-ssh`. The [Dockerfile](Dockerfile) puts this location into the variable `OQS_INSTALL_DIR` where it will is accessible from the script.
 ## Using oqs-ssh for quantum-safe remote access with minimal intrusion
 
 One use case of quantum-safe ssh running in docker could be accessing a remote system without messing with its ssh(d) installation. This means minimal intrusion and everything can be easily removed again. This is done by running this docker image on said system and sharing its network space. Thus it is possible to access host ports from **within** the docker container. Normally, the use case of docker is one of isolation with some shared directories and published ports at max. So this solution works around the usual docker limitations.
@@ -108,7 +118,3 @@ To ease rapid startup and teardown, we strongly recommend using the docker [--na
 ### Port: 2222
 
 Port at which (oqs-)sshd listens by default for quantum-safe ssh connections. Defined/changeable in `sshd_config`.
-
-## Disclaimer
-
-[THIS IS NOT FIT FOR PRODUCTIVE USE](https://github.com/open-quantum-safe/openssl#limitations-and-security).
