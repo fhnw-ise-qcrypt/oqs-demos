@@ -1,7 +1,6 @@
 ## Purpose 
 
-This is an [opensshd](https://https.openssh.com) docker image based on the [OQS OpenSSH 7.9 fork](https://github.com/open-quantum-safe/openssh), which allows ssh to quantum-safely negotiate session keys and use quantum-safe authentication with algorithms from the [Post-Quanum Cryptography Project by NIST](https://csrc.nist.gov/projects/post-quantum-cryptography) 
-
+This is an [opensshd](https://https.openssh.com) docker image based on the [OQS OpenSSH 7.9 fork](https://github.com/open-quantum-safe/openssh), which allows ssh to quantum-safely negotiate session keys and use quantum-safe authentication with algorithms from the [Post-Quanum Cryptography Project by NIST](https://csrc.nist.gov/projects/post-quantum-cryptography).
 
 This image has a built-in non-root user to permit execution without particular [docker privileges](https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities). This is necessary as loging in as root in ssh is not recommended practice. But is worth to note that this user, per default called `oqs`, is not set as the default user when the image starts (which would be done with `USER oqs` in the [Dockerfile](Dockerfile)). The reason for that is that the the start up script needs root permissions to generate all host keys and start the sshd service. This means that when executing a command as the user `oqs`, the `docker exec` command needs to be used together with the option `--user oqs`.
 
@@ -9,6 +8,10 @@ This image has a built-in non-root user to permit execution without particular [
 ## Quick start 
 
 How to set up your quantum-safe OpenSSH is described in the corresponding [README.md](README.md).
+
+## Limitations
+
+For limitations of the post-quantum algorithms itself, refer to [this](https://github.com/open-quantum-safe/openssh#limitations-and-security).
 
 ## Slightly more advanced usage options
 
@@ -20,15 +23,19 @@ The OQS-OpenSSH binaries, configuration files and host keys are located in the d
 
 Man pages for oqs-ssh are installed in `<INSTALL_DIR>/share/man` and can be viewed by for example `man -l <INSTALL_DIR>/share/man/man1/ssh.1` or `man -l <INSTALL_DIR>/share/man/man5/ssh.5`. Note that those man pages are **not** different from the original ssh man pages. So it might be easier to consult them on your local system or the internet. 
 
-Direct links to man pages: [ssh](https://linux.die.net/man/1/ssh), [sshd](https://linux.die.net/man/8/sshd), [ssh_config](https://linux.die.net/man/5/ssh_config), [sshd_config](https://linux.die.net/man/5/sshd_config)
+Direct links to man pages: [ssh(1)](https://linux.die.net/man/1/ssh), [sshd(8)](https://linux.die.net/man/8/sshd), [ssh_config(5)](https://linux.die.net/man/5/ssh_config), [sshd_config(5)](https://linux.die.net/man/5/sshd_config)
 
 ## Seriously more advanced usage options
 
 ### Choosing the algorithms
 
-The image's default algorithms are `ecdh-nistp384-kyber-1024-sha384@openquantumsafe.org` for key-exchange with `curve25519-sha256` for backwards compatibility and `ssh-p256-dilithium2` with backwards compatible `ssh-ed25519` as host and identity key algorithms. Those defaults may be changed by adjusting the files `ssh_config` and `sshd_config` respectively. In the finished image, those files are located in the default install location (see above). After changing something in `sshd_config`, the sshd must be restarted using `rc-service oqs-sshd restart`. Alternatively, the configuration can be changed **pre**-build by changing [ssh_config](ssh_config) or [sshd_config](sshd_config) and rebuilding the image.
+For a list of all algorithms see [here](https://github.com/open-quantum-safe/openssh#supported-algorithms). It is recommended to only use hybrid algorithms to maintain established classical security. The post-quantum safe algorithms have not received enough revision to be relied on as the only security mechanism.
 
-Be aware that configuration for sshd and for ssh can be different as long as you don't want to connect to yourself. So can for example ssh be configured like a classical ssh client and sshd only support post-quantum algorithms with no backwards compatibility at all.
+The image's default key-exchange algorithm is `ecdh-nistp384-kyber-1024-sha384@openquantumsafe.org` for key-exchange with `curve25519-sha256` for backwards compatibility. For host and identity key (authentication) algorithms `ssh-p256-dilithium2` and classical `ssh-ed25519` are used. Those algorithms may be changed by adjusting the files `ssh_config` and `sshd_config` respectively. In the finished image, those files are located in the default install location (see above). After changing something in `sshd_config`, the sshd must be restarted using `rc-service oqs-sshd restart`. Alternatively, the configuration can be changed **pre**-build by changing [ssh_config](ssh_config) or [sshd_config](sshd_config) and rebuilding the image.
+
+Be aware that configurations for sshd and for ssh can be different as long as you don't want to connect to localhost. For example can ssh be configured like a classical ssh client and sshd only support post-quantum algorithms with no backwards compatibility at all.
+
+Note that as long as the backwards compatibility is maintained, the system can not be considered post-quantum safe for obvious reasons.
 
 ### Key re-generation
 
@@ -46,7 +53,7 @@ As mentioned above those keys will only be generated if they don't yet exist. So
 The location where `key-regen.sh` is looking for `ssh_config`/`sshd_config` is the install directory of `oqs-ssh`. The [Dockerfile](Dockerfile) puts this location into the variable `OQS_INSTALL_DIR` where it will is accessible from the script.
 ## Using oqs-ssh for quantum-safe remote access with minimal intrusion
 
-One use case of quantum-safe ssh running in docker could be accessing a remote system without messing with its ssh(d) installation. This means minimal intrusion and everything can be easily removed again. This is done by running this docker image on said system and sharing its network space. Thus it is possible to access host ports from **within** the docker container. Normally, the use case of docker is one of isolation with some shared directories and published ports at max. So this solution works around the usual docker limitations.
+One use case of quantum-safe ssh running in docker could be accessing a remote system without messing with its ssh(d) installation or other parts of the system you maybe don't want to mess with. This means minimal intrusion and everything can easily be removed again. This is done by running this docker image on said system and sharing its network space. Thus it is possible to access host ports from **within** the docker container. Normally, the use case of docker is one of isolation with some shared directories and published ports at max. So this solution works around the usual docker limitations.
 
 Additionally, it is advised to **change the default username and password** when building the image because your plan is to expose it to the world.
 
