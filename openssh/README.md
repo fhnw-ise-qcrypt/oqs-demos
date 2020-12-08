@@ -14,7 +14,7 @@ This will start a docker container that has sshd listening for SSH connections o
 `docker exec -ti -u oqs oqs-openssh-server /bin/sh`
 Of course adjust the container's name accordingly if hopping onto the client (==> `oqs-openssh-client`).
 
-It is possible that the `docker build [...]` command fails with something like `Got permission denied while trying to connect to the Docker daemon socket [...]`. That is because the active user is not member of the `docker` group yet. To fix this run:
+It is possible that the `docker build [...]` command fails with something like `Got permission denied while trying to connect to the Docker daemon socket [...]`. That is because the active user is not a member of the `docker` group yet. To fix this run:
 ```bash
 usermod -aG docker <user>
 newgrp docker
@@ -45,7 +45,7 @@ The Dockerfile
 
 **Note for the interested**: The build process is two-stage with the final image only retaining all executables, libraries and include-files to utilize OQS-enabled openssh.
 
-The re-generation of the host and identity keys happens via the script [key-regen.sh](key-regen.sh) that is called with a `CMD` command at the end of the [Dockerfile](Dockerfile). The script checks if required key already exist and gerenates it if necessary.
+The re-generation of the host and identity keys happens via the script [key-regen.sh](key-regen.sh) that is called with a `CMD` command at the end of the [Dockerfile](Dockerfile). The script checks if the required key already exist and gerenates it if necessary.
 #### Build type argument(s)
 
 The Dockerfile also facilitates building the underlying OQS library to different specifications (by setting the `--build-arg` variable `LIBOQS_BUILD_DEFINES` as defined [here](https://github.com/open-quantum-safe/liboqs/wiki/Customizing-liboqs).
