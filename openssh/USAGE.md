@@ -1,6 +1,6 @@
 ## Purpose 
 
-This is an [opensshd](https://https.openssh.com) docker image based on the [OQS OpenSSH 7.9 fork](https://github.com/open-quantum-safe/openssh), which allows ssh to quantum-safely negotiate session keys and use quantum-safe authentication with algorithms from the [Post-Quanum Cryptography Project by NIST](https://csrc.nist.gov/projects/post-quantum-cryptography).
+This is an [opensshd](https://https.openssh.com) docker image based on the [OQS OpenSSH 7.9 fork](https://github.com/open-quantum-safe/openssh), which allows ssh to quantum-safely negotiate session keys and use quantum-safe authentication with algorithms from the [Post-Quantum Cryptography Project by NIST](https://csrc.nist.gov/projects/post-quantum-cryptography).
 
 This image has a built-in non-root user to permit execution without particular [docker privileges](https://docs.docker.com/engine/reference/run/#runtime-privilege-and-linux-capabilities). This is necessary as logging in as root in ssh is not recommended practice. But it is worth to note that this user, per default called `oqs`, is not set as the default user when the image starts (which would be done with `USER oqs` in the [Dockerfile](Dockerfile)). The reason for that is that the the start up script needs root permissions to generate all host keys and start the sshd service. This means that when executing a command as the user `oqs`, the `docker exec` command needs to be used together with the option `--user oqs`.
 
