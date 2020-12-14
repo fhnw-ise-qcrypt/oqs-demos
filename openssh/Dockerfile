@@ -34,11 +34,11 @@ RUN apk update && apk upgrade
 # Get all software packages required for builing all components:
 # Note: build-base cannot be used due to the fortify-headers package throwing an error
 RUN apk add gcc musl-dev linux-headers \
-            libtool automake autoconf cmake \
-            make \
-            openssl openssl-dev \
-            git docker \
-            zlib-dev
+    libtool automake autoconf cmake \
+    make \
+    openssl openssl-dev \
+    git docker \
+    zlib-dev
 
 # get all sources
 WORKDIR /opt
@@ -86,7 +86,7 @@ RUN addgroup --gid 1000 --system ${OQS_USER} && adduser --uid 1000 --system ${OQ
 # Set up login shell: Add ssh-binaries to path for ssh login shell, fix /etc/profile not executing /etc/profile.d/*
 RUN sed -i "s|PATH=|PATH=${INSTALL_DIR}/bin:|;s|/etc/profile.d/\*\.sh|/etc/profile.d/\*|" /etc/profile
 
-# Create identity file for $OQS_USER and add public key to $OQS_USER's authorized keys for a localhost connection
+# Setup .ssh folder for $OQS_USER to hold the identity keys later
 WORKDIR /home/${OQS_USER}/.ssh
 RUN chown ${OQS_USER}:${OQS_USER} .
 
@@ -94,7 +94,7 @@ RUN chown ${OQS_USER}:${OQS_USER} .
 ENV OQS_INSTALL_DIR=${INSTALL_DIR}
 ENV OQS_USER=$OQS_USER
 
-# Enable ssh deamon to start at boot
+# Enable ssh deamon to start at boot (although `rc-service oqs-sshd start` still needs to be called)
 COPY oqs-sshd /etc/init.d/
 RUN sed -ri "s:${DEFAULT_INSTALL_DIR}:${INSTALL_DIR}:g" /etc/init.d/oqs-sshd
 RUN apk add openrc \
