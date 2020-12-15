@@ -1,15 +1,15 @@
 ## Purpose 
 
-This directory contains a Dockerfile that builds [httpd (a.k.a the Apache HTTP Server)](https://httpd.apache.org) with the [OQS OpenSSL 1.1.1 fork](https://github.com/open-quantum-safe/openssl), which allows httpd to negotiate quantum-safe keys and use quantum-safe authentication in TLS 1.3.
+This directory contains a Dockerfile that builds [haproxy](https://www.haproxy.org) with the [OQS OpenSSL 1.1.1 fork](https://github.com/open-quantum-safe/openssl), which allows haproxy to negotiate quantum-safe keys and use quantum-safe authentication in TLS 1.3.
 
 ## Getting started
 
 [Install Docker](https://docs.docker.com/install) and run the following commands in this directory:
 
-1. `docker build --build-arg SIG_ALG=<SIG> --tag oqs-httpd-img .` (`<SIG>` can be any of the authentication algorithms listed [here](https://github.com/open-quantum-safe/openssl#authentication)). An alternative, simplified build instruction is `docker build -t oqs-httpd-img .`: This will generate the image with a default QSC algorithm (dilithium2 -- see Dockerfile to change this).
-2. `docker run --detach --rm --name oqs-httpd -p 4433:4433 oqs-httpd-img`
+1. `docker build --build-arg SIG_ALG=<SIG> --tag oqs-haproxy-img .` (`<SIG>` can be any of the authentication algorithms listed [here](https://github.com/open-quantum-safe/openssl#authentication)). An alternative, simplified build instruction is `docker build -t oqs-haproxy-img .`: This will generate the image with a default QSC algorithm (dilithium3 -- see Dockerfile to change this).
+2. `docker run --detach --rm --name oqs-haproxy -p 4433:4433 oqs-haproxy-img`
 
-This will start a docker container that has httpd listening for TLS 1.3 connections on port 4433. 
+This will start a docker container that has haproxy listening for TLS 1.3 connections on port 4433. Actual data will be served via a load-balanced `lighttpd` server running on ports 8181 and 8182.
 
 
 ## Usage
@@ -33,17 +33,17 @@ This defines the quantum-safe cryptographic signature algorithm for the internal
 The default value is 'dilithium3' but can be set to any value documented [here](https://github.com/open-quantum-safe/openssl#authentication).
 
 
-### HTTPD_PATH
+### HAPROXY_PATH
 
-This defines the resultant location of the httpd installatiion.
+This defines the resultant location of the haproxy installation.
 
-By default this is '/opt/httpd'. It is recommended to not change this. Also, all [usage documentation](USAGE.md) assumes this path.
+By default this is '/opt/haproxy'. It is recommended to not change this. Also, all [usage documentation](USAGE.md) assumes this path.
 
-### HTTPD_VERSION
+### HAPROXY_VERSION
 
-This defines the apache httpd software version to be build into the image.
+This defines the haproxy software version to be build into the image. By default, this is an LTS version.
 
-The default version set is known to work OK but one could try any value available [for download](https://httpd.apache.org/download.cgi).
+The default version set is known to work OK but one could try any value available [for download](https://www.haproxy.org/#down).
 
 ### MAKE_DEFINES
 

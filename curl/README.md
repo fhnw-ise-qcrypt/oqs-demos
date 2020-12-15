@@ -11,7 +11,7 @@ This directory contains a Dockerfile that builds curl with the [OQS OpenSSL 1.1.
 ## More details
 
 The Dockerfile 
-- obtains all source code required for building the quantum-safe crypto (QSC) algorithms, the QSC-enabled version of OpenSSL (v.1.1.1), curl (v.7.69.1) 
+- obtains all source code required for building the quantum-safe crypto (QSC) algorithms, the QSC-enabled version of OpenSSL (v.1.1.1), curl (v.7.73.0) 
 - builds all libraries and applications
 - creates OQS-enabled certificate files for a mini-root certificate authority (CA) 
 - creates an OQS-enabled server certificate for running a `localhost` QSC-TLS server
@@ -26,10 +26,10 @@ docker build -t oqs-curl --build-arg SIG_ALG=qteslapiii .
 
 Two further, runtime configuration option exist that can both be optionally set via docker environment variables:
 
-1) Setting the key exchange mechanism (KEM): By setting 'KEM_ALG' 
-to any of the [supported KEM algorithms built into OQS-OpenSSL](https://github.com/open-quantum-safe/openssl#key-exchange) one can run TLS using a KEM other than the default algorithm 'kyber512'. Example: `docker run -e KEM_ALG=newhope1024cca -it oqs-curl`. It is always necessary to also request use of this KEM algorithm by passing it to the invocation of `curl` with the `--curves` parameter, i.e. as such in the same example: `curl --curves newhope1024cca https://localhost:4433`.
+1) Setting the key exchange mechanism (KEM): By setting 'KEM_ALG'
+to any of the [supported KEM algorithms built into OQS-OpenSSL](https://github.com/open-quantum-safe/openssl#key-exchange) one can run TLS using a KEM other than the default algorithm 'kyber512'. Example: `docker run -e KEM_ALG=ntru_hps2048509 -it oqs-curl`. It is always necessary to also request use of this KEM algorithm by passing it to the invocation of `curl` with the `--curves` parameter, i.e. as such in the same example: `curl --curves ntru_hps2048509 https://localhost:4433`.
 
-2) Setting the signature algorithm (SIG): By setting 'SIG_ALG' to any of the [supported OQS signature algorithms](https://github.com/open-quantum-safe/openssl#authentication) one can run TLS using a SIG other than the one set when building the image (see above). Example: `docker run -e SIG_ALG=picnicl1fs -it oqs-curl`.
+2) Setting the signature algorithm (SIG): By setting 'SIG_ALG' to any of the [supported OQS signature algorithms](https://github.com/open-quantum-safe/openssl#authentication) one can run TLS using a SIG other than the one set when building the image (see above). Example: `docker run -e SIG_ALG=picnicl1full -it oqs-curl`.
 
 #### Build type argument(s)
 
@@ -78,7 +78,7 @@ By default this is '/opt/oqssa'. It is recommended to not change this. Also, all
 
 This defines the curl software version to be build into the image.
 
-The default version set is known to work OK and depends on a patch. Therefore changing it is *not* recommended.
+The default version set is known to work OK providing features required for selecting QSC algorithms (via the `--curves` option). Therefore changing it is *not* recommended.
 
 ### MAKE_DEFINES
 
