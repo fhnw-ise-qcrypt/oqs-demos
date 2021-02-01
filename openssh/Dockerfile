@@ -56,6 +56,11 @@ WORKDIR /opt
 RUN git clone --depth 1 --branch ${LIBOQS_RELEASE} https://github.com/open-quantum-safe/liboqs && \
     git clone --depth 1 --branch ${OQS_OPENSSH_RELEASE} https://github.com/open-quantum-safe/openssh ossh-src;
 
+# Patch openssh
+WORKDIR /opt/ossh-src
+COPY enable-all-round-3-signatures.patch .
+RUN git apply enable-all-round-3-signatures.patch
+
 # build liboqs static (does not work with shared lib!)
 WORKDIR /opt/liboqs
 # RUN mkdir build && cd build && cmake .. ${LIBOQS_BUILD_DEFINES} -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/opt/ossh-src/oqs && make ${MAKE_DEFINES} && make install
