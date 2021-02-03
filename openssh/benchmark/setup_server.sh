@@ -1,5 +1,7 @@
 #!/bin/bash
 
+DIR=${0%/*}
+
 echo "Debug level set to ${DEBUGLVL:=0}"
 
 CONTAINER="oqs-server"
@@ -20,7 +22,8 @@ if [ $? -eq 0 ]; then
     evaldbg "docker stop ${CONTAINER} -t 0"
 fi
 
-# TODO Start docker image
+# Start docker image
+# TODO: Remove oqs-net 
 echo ""
 echo "Starting ${CONTAINER}:"
 evaldbg "docker run
@@ -32,18 +35,27 @@ evaldbg "docker run
     ${DOCKER_IMG}"
 
 # TODO get list of host key algorithms
+SIGS=()
+while IFS="" read -r SIG; do 
+    [[ $SIG == "" ]] || [[ $SIG =~ ^#.* ]] && continue # This looks weird I know, but it works (=~ takes regex, but not as string)
+    SIGS+=("$SIG")
+done < "$DIR/listofsigs.conf"
+
 echo ""
-files=$(evaldbg "docker exec -it ${CONTAINER} bash -c 'ls /opt/oqs-ssh/ssh_host_*_key'")
-echo -n "Finding all host key algorithms: "
+
 SIG_LIST=""
-for file in $files; do 
-    SIG=$(echo ${file} | sed -n "s:.*ssh_host_::p" | sed -n "s:_key.*::p")
-    if [ ${#SIG} -gt 0 ] && [ ${SIG} != "\*" ]; then
-        SIG_LIST="$SIG_LIST,${SIG/_/-}"
+for SIG in ${SIGS[@]}; do 
+    if [[ "${SIG,,}" == "*ecdsa*" ]] || [[ "${SIG,,}" == "*rsa*" ]] || [[ "${SIG,,}" == "*dsa*" ]] || [[ "${SIG,,}" == "*ed25519*" ]]; then
+        SIG_LIST="$SIG_LIST,$SIG"
+    else
+        SIG_LIST="$SIG_LIST,ssh-$SIG"
     fi
 done
+SIG_LIST=${SIG_LIST#,}
 
-echo $SIG_LIST
-
+# docker exec -t ${CONTAINER} "SIG_LIST=$SIG_LIST"
 # TODO Start sshd with all algorithms enabled
-evaldbg "/opt/oqs-ssh/sbin/sshd -o PubkeyAcceptedKeyTypes=${SIG_LIST}"
+evaldbg "docker exec -t ${CONTAINER} /opt/oqs-ssh/sbin/sshd -o PubkeyAcceptedKeyTypes=${SIG_LIST}"
+# echo ""
+# echo ""
+# evaldbg "docker exec -t ${CONTAINER} /opt/oqs-ssh/sbin/sshd -o PubkeyAcceptedKeyTypes=${SIG_LIST} -ddd"

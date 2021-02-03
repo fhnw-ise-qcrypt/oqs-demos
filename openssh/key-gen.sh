@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Skip key-gen?
+SKIP_KEYGEN=${SKIP_KEYGEN:="NO"}
+
+if [ "x${SKIP_KEYGEN^^}" == "xYES" ] || [ "x${SKIP_KEYGEN^^}" == "xY" ] || [ "x${SKIP_KEYGEN^^}" == "xON" ] || [ "x${SKIP_KEYGEN^^}" == "xTRUE" ]; then
+    echo "Skipping key-gen! Not generating ANY keys!"
+    exit 0
+fi
+
 # Check if root
 if [ "x${EUID}" != "x0" ]; then
     echo "Must be root! Aborting..."
