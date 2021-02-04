@@ -6,6 +6,7 @@ echo "Debug level set to ${DEBUGLVL:=0}"
 
 CONTAINER="oqs-server"
 DOCKER_IMG="oqs-openssh-img"
+PORT=${PORT:=2222}
 
 function evaldbg {
     if [ $DEBUGLVL -ge 2 ]; then
@@ -23,21 +24,20 @@ if [ $? -eq 0 ]; then
 fi
 
 # Start docker image
-# TODO: Remove oqs-net 
 echo ""
 echo "Starting ${CONTAINER}:"
 evaldbg "docker run
-    --net oqs-net \
     --name ${CONTAINER} \
     -dit \
+    --publish ${PORT}:${PORT} \
     --rm \
     -e SKIP_KEYGEN=YES \
     ${DOCKER_IMG}"
 
-# TODO get list of host key algorithms
+# Get list of host key algorithms
 SIGS=()
 while IFS="" read -r SIG; do 
-    [[ $SIG == "" ]] || [[ $SIG =~ ^#.* ]] && continue # This looks weird I know, but it works (=~ takes regex, but not as string)
+    [[ $SIG == "" ]] || [[ $SIG =~ ^#.* ]] && continue # If this looks weird: No worries, it works (=~ takes regex, but not as string)
     SIGS+=("$SIG")
 done < "$DIR/listofsigs.conf"
 
@@ -45,7 +45,7 @@ echo ""
 
 SIG_LIST=""
 for SIG in ${SIGS[@]}; do 
-    if [[ "${SIG,,}" == "*ecdsa*" ]] || [[ "${SIG,,}" == "*rsa*" ]] || [[ "${SIG,,}" == "*dsa*" ]] || [[ "${SIG,,}" == "*ed25519*" ]]; then
+    if [[ "${SIG,,}" == "*ecdsa*" ]] || [[ "${SIG,,}" == "*dsa*" ]]; then
         SIG_LIST="$SIG_LIST,$SIG"
     else
         SIG_LIST="$SIG_LIST,ssh-$SIG"
@@ -53,9 +53,11 @@ for SIG in ${SIGS[@]}; do
 done
 SIG_LIST=${SIG_LIST#,}
 
-# docker exec -t ${CONTAINER} "SIG_LIST=$SIG_LIST"
-# TODO Start sshd with all algorithms enabled
+# Start sshd with all algorithms enabled
 evaldbg "docker exec -t ${CONTAINER} /opt/oqs-ssh/sbin/sshd -o PubkeyAcceptedKeyTypes=${SIG_LIST}"
-# echo ""
-# echo ""
-# evaldbg "docker exec -t ${CONTAINER} /opt/oqs-ssh/sbin/sshd -o PubkeyAcceptedKeyTypes=${SIG_LIST} -ddd"
+
+if [[ $? -eq 0 ]]; then
+    echo "### [ OK ] ### Server set up successfully! Now set up the client."
+else
+    echo "### [FAIL] ### Error while setting up server!"
+fi

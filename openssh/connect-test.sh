@@ -14,7 +14,7 @@ KEM=${KEM_ALG:="ecdh-nistp384-kyber-1024"}
 # Generate new identity keys, overwrite old keys
 SSH_DIR="/home/${OQS_USER}/.ssh"
 SIG_ID_FILE="${SSH_DIR}/id_${SIG//-/_}"
-echo "y" | su ${OQS_USER} -c "${OQS_INSTALL_DIR}/bin/ssh-keygen -t ssh-${SIG} -f ${SIG_ID_FILE} -N \"\" -q"
+echo "y" | su ${OQS_USER} -c "${OQS_INSTALL_DIR}/bin/ssh-keygen -t ssh-${SIG//_/-} -f ${SIG_ID_FILE} -N \"\" -q"
 echo ""
 cat ${SIG_ID_FILE}.pub >> ${SSH_DIR}/authorized_keys
 [[ $DEBUGLVL -gt 0 ]] && echo "Debug1: New identity key '${SIG_ID_FILE}(.pub)' created!"
@@ -28,14 +28,10 @@ if [ ${EUID} -eq 0 ]; then
 fi
 
 # See if TEST_HOST was set, if not use default
-if [ "x${TEST_HOST}" == "x" ]; then
-    TEST_HOST="localhost"
-fi
+TEST_HOST=${TEST_HOST:="localhost"}
 
 # See if TEST_TIME was set, if not use default
-if [ "x${TEST_TIME}" == "x" ]; then
-    TEST_TIME=60
-fi
+TEST_TIME=${TEST_TIME:=60}
 OPTIONS="${OPTIONS} -o ConnectTimeout=${TEST_TIME}"
 
 # Optionally set port

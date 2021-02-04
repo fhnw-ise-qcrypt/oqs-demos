@@ -14,6 +14,7 @@ echo "Debug level set to ${DEBUGLVL:=0}"
 
 CONTAINER="oqs-client"
 DOCKER_IMG="oqs-openssh-img"
+PORT=${PORT:=2222}
 
 function evaldbg {
     if [ $DEBUGLVL -ge 2 ]; then
@@ -30,13 +31,11 @@ if [ $? -eq 0 ]; then
     evaldbg "docker stop ${CONTAINER} -t 0"
 fi
 
-# Run client 
-# TODO: Remove oqs-net 
+# Run client
 echo ""
 echo "Starting ${CONTAINER}:"
 evaldbg "docker run \
     --user oqs \
-    --net oqs-net \
     --name ${CONTAINER} \
     -dit \
     --rm \
@@ -47,36 +46,44 @@ evaldbg "docker run \
 # Get list of signature algorithms
 SIGS=()
 while IFS="" read -r SIG; do 
-    [[ $SIG == "" ]] || [[ $SIG =~ ^#.* ]] && continue # This looks weird I know, but it works (=~ takes regex, but not as string)
+    [[ $SIG == "" ]] || [[ $SIG =~ ^#.* ]] && continue # If this looks weird: No worries, it works (=~ takes regex, but not as string)
     SIGS+=("$SIG")
 done < "$DIR/listofsigs.conf"
 
 echo ""
 
 SSH_ID_PATH="/home/oqs/.ssh"
-echo -n "Generating id keys: "
+echo "### Generating identity keys ###"
 for SIG in ${SIGS[@]}; do 
-    SIG=${SIG//-/_}
+    SIG=${SIG,,}
     echo -n "${SIG^^} "
-    evaldbg "docker exec --user oqs -t ${CONTAINER} ssh-keygen -t ${SIG} -f ${SSH_ID_PATH}/id_${SIG} -N \"\" -q"
+    evaldbg "docker exec --user oqs -t ${CONTAINER} ssh-keygen -t ssh-${SIG//_/-} -f ${SSH_ID_PATH}/id_${SIG//-/_} -N \"\" -q"
 done
-echo ""
+echo ""; echo ""
 
-# TODO Copy all .ssh/*.pub to server --> Need server IP
-FIRST_KEY="p384-dilithium4"
+### Copy all .ssh/*.pub to server --> Need server IP
+GLOBAL_SSH_OPTS="-p ${PORT} -o StrictHostKeyChecking=no -q"
+
+FIRST_KEY=${SIGS[0]}
 PASSWORD="oqs.pw"
 OQS_USER="oqs"
 PORT=2222
+
+echo "### Sending public keys to server ###"
 # First run: Password authentication
-SSH_OPTS="-o StrictHostKeyChecking=no -v"
+SSH_OPTS="${GLOBAL_SSH_OPTS}"
 evaldbg "docker exec --user oqs -t ${CONTAINER} bash -c \"cat ${SSH_ID_PATH}/id_${FIRST_KEY//-/_}.pub | sshpass -p ${PASSWORD} ssh ${OQS_USER}@${SERVER} ${SSH_OPTS} 'cat >> .ssh/authorized_keys; exit 0'\""
+if [[ $? -eq 0 ]]; then
+    echo -n "${FIRST_KEY^^} "
+else
+    echo -n "[FAILED: ${FIRST_KEY^^}] "
+fi
 
 # Other runs: Authentication with first run's key
-echo ""
-echo -n "Sending public keys to server: "
+KEYSET_FAIL=0
 for SIG in ${SIGS[@]}; do
     if [[ ${SIG//-/_} != ${FIRST_KEY//-/_} ]]; then
-        SSH_OPTS="-o Batchmode=yes -o StrictHostKeyChecking=no -i ${SSH_ID_PATH}/id_${FIRST_KEY//-/_}"
+        SSH_OPTS="${GLOBAL_SSH_OPTS} -o Batchmode=yes -i ${SSH_ID_PATH}/id_${FIRST_KEY//-/_} -o PubKeyAcceptedKeyTypes=ssh-${FIRST_KEY//_/-}"
         evaldbg "docker exec --user oqs -t ${CONTAINER} bash -c \"cat ${SSH_ID_PATH}/id_${SIG//-/_}.pub | ssh ${OQS_USER}@${SERVER} ${SSH_OPTS} 'cat >> .ssh/authorized_keys; exit 0'\""
         if [[ $? -eq 0 ]]; then
             echo -n "${SIG^^} "
@@ -85,40 +92,35 @@ for SIG in ${SIGS[@]}; do
         fi
     fi
 done
+echo ""; echo ""
 
-echo ""
-echo ""
-# sleep 1 #FIXME
 
-# FIXME: p384 and p521 keys fail --> Maybe decode and check with ssh-keygen?
-echo "Testing pubkeys: "
-
+# Test public keys
+echo "### Testing pubkeys ###"
+TEST_FAIL=0
+SIG_FAIL=()
 for SIG in ${SIGS[@]}; do
-    SSH_OPTS="-i ${SSH_ID_PATH}/id_${SIG//-/_} -o Batchmode=yes -o StrictHostKeyChecking=no -o PubkeyAcceptedKeyTypes=ssh-${SIG//_/-} -o ConnectTimeout=60 -v"
-    # SSH_OPTS="-o Batchmode=yes -o StrictHostKeyChecking=no -i ${SSH_ID_PATH}/id_${SIG//-/_}"
+    SSH_OPTS="${GLOBAL_SSH_OPTS} -i ${SSH_ID_PATH}/id_${SIG//-/_} -o Batchmode=yes -o PubkeyAcceptedKeyTypes=ssh-${SIG//_/-} -o ConnectTimeout=60"
     evaldbg "docker exec --user oqs -it ${CONTAINER} ssh ${SSH_OPTS} ${OQS_USER}@${SERVER} 'exit 0'"
     if [[ $? -eq 0 ]]; then
-        echo "${SIG^^} "
+        echo -n "${SIG^^} "
     else
-        echo "[FAILED: ${SIG^^}] "
+        echo -n "[FAILED: ${SIG^^}] "
+        TEST_FAIL=1
+        SIG_FAIL+=(${SIG^^})
     fi
-    echo ""
 done
+echo ""; echo ""
 
-# docker exec --user oqs -t ${CONTAINER} ls "/home/oqs/" -al
-# echo "Decoded private key:"
-# docker exec --user oqs -t ${CONTAINER} ssh-keygen -y ${SSH_ID_PATH}/id_${SIG//-/_}
-
-#evaldbg "docker exec --user oqs -t ${CONTAINER} ssh ${OQS_USER}@${SERVER} -o StrictHostKeyChecking=no -o PubKeyAcceptedKeyTypes=ssh-${FIRST_KEY//_/-} -i ${SSH_ID_PATH}/id_${FIRST_KEY//-/_} \"exit 0\""
-# DOCKER EXEC: cat .ssh/id_p384_dilithium4.pub | sshpass -p "oqs.pw" ssh -o StrictHostKeyChecking=no oqs@172.18.0.2 "cat >> authorized_keys"
-
-# echo "vvv"
-# evaldbg "docker exec --user oqs -it ${CONTAINER} vi ${SSH_ID_PATH}/id_${SIG//-/_}"
-# evaldbg "docker exec --user oqs -it ${CONTAINER} ls -al ${SSH_ID_PATH}"
-# echo "^^^"
-
-# if [[ $? -eq 0 ]]; then
-#     echo ""
-#     echo "SUCCESS!"
-# fi
-
+if [[ TEST_FAIL -gt 0 ]]; then
+    echo -n "### [FAIL] ### with "
+    for FAIL in ${SIG_FAIL[@]}; do
+        echo -n "${FAIL} "
+    done
+    echo ""
+    echo " ### [Note] ### The problem could also be server side!"
+    exit 1
+else
+    echo "### [ OK ] ### Client (and thus the server) set up successfully! The testing may begin!"
+    exit 0
+fi
