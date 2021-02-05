@@ -44,37 +44,43 @@ evaldbg "docker run \
     ${DOCKER_OPTS} \
     ${DOCKER_IMG}"
 
-# For each host key generate a new id key
 # Get list of signature algorithms
 SIGS=()
 while IFS="" read -r SIG; do 
     [[ $SIG == "" ]] || [[ $SIG =~ ^#.* ]] && continue # If this looks weird: No worries, it works (=~ takes regex, but not as string)
-    if [[ ${SIG,,} == *"@openssh.com" ]]; then
+    SIGS+=("$SIG")
+done < "$DIR/listofsigs.conf"
+
+for i in ${!SIGS[@]}; do
+    echo -n "${SIGS[i]} --> "
+    if [[ ${SIGS[i],,} == *"@openssh.com" ]]; then
         echo "[FAIL] Use an algorithm without the '@openssh.com' postfix, they are not supported at the moment."
         echo "Use one of the following: ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521"
         exit 1
-    elif [[ ${SIG,,} == *"rsa"* ]] && [[ ${SIG,,} != *"rsa3072"* ]]; then
+    elif [[ ${SIGS[i],,} == *"rsa"* ]] && [[ ${SIGS[i],,} != *"rsa3072"* ]]; then
         echo "[FAIL] No support for any rsa algorithm."
         echo "Use one of the following: ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521"
         exit 1
-    elif [[ ${SIG,,} != "ecdsa-sha2-nistp"* ]] && [[ ${SIG,,} != "ssh-ed25519" ]]; then
+    elif [[ ${SIGS[i],,} != "ecdsa-sha2-nistp"* ]] && [[ ${SIGS[i],,} != "ssh-ed25519" ]]; then
         # Add Prefix
-        if [[ ${SIG,,} != "ssh-"* ]]; then
-            SIGS+=("ssh-${SIG,,}")
+        if [[ ${SIGS[i],,} != "ssh-"* ]]; then
+            SIGS_FULL[i]="ssh-${SIGS[i],,}"
         fi
     else
-        SIGS+=("${SIG,,}")
+        SIGS_FULL[i]="${SIGS[i],,}"
     fi
-done < "$DIR/listofsigs.conf"
+    echo "${SIGS_FULL[i]}"
+done
 
 echo ""
 
+# For each enabled signature algorithm generate a new id key
 SSH_ID_PATH="/home/oqs/.ssh"
 echo "### Generating identity keys ###"
-for SIG in ${SIGS[@]}; do 
-    SIG=${SIG,,}
-    echo -n "${SIG^^} "
-    evaldbg "docker exec --user oqs -t ${CONTAINER} ssh-keygen -t ${SIG//_/-} -f ${SSH_ID_PATH}/id_${SIG//-/_} -N \"\" -q"
+for i in ${!SIGS[@]}; do 
+    # SIG=${SIGS[i],,}
+    echo -n "${SIGS[i]^^} "
+    evaldbg "docker exec --user oqs -t ${CONTAINER} ssh-keygen -t ${SIGS_FULL[i]//_/-} -f ${SSH_ID_PATH}/id_${SIGS[i]//-/_} -N \"\" -q"
 done
 echo ""; echo ""
 
@@ -87,6 +93,7 @@ elif [[ $DEBUGLVL -ge 2 ]]; then
 fi
 
 FIRST_KEY=${SIGS[0]}
+FIRST_KEY_FULL=${SIGS_FULL[0]}
 PASSWORD="oqs.pw"
 OQS_USER="oqs"
 PORT=2222
@@ -103,14 +110,14 @@ fi
 
 # Other runs: Authentication with first run's key
 KEYSET_FAIL=0
-for SIG in ${SIGS[@]}; do
-    if [[ ${SIG//-/_} != ${FIRST_KEY//-/_} ]]; then
-        SSH_OPTS="${GLOBAL_SSH_OPTS} -o Batchmode=yes -i ${SSH_ID_PATH}/id_${FIRST_KEY//-/_} -o PubKeyAcceptedKeyTypes=${FIRST_KEY//_/-}"
-        evaldbg "docker exec --user oqs -t ${CONTAINER} bash -c \"cat ${SSH_ID_PATH}/id_${SIG//-/_}.pub | ssh ${OQS_USER}@${SERVER} ${SSH_OPTS} 'cat >> .ssh/authorized_keys; exit 0'\""
+for i in ${!SIGS[@]}; do
+    if [[ ${SIGS[i]//-/_} != ${FIRST_KEY//-/_} ]]; then
+        SSH_OPTS="${GLOBAL_SSH_OPTS} -o Batchmode=yes -i ${SSH_ID_PATH}/id_${FIRST_KEY//-/_} -o PubKeyAcceptedKeyTypes=${FIRST_KEY_FULL//_/-}"
+        evaldbg "docker exec --user oqs -t ${CONTAINER} bash -c \"cat ${SSH_ID_PATH}/id_${SIGS[i]//-/_}.pub | ssh ${OQS_USER}@${SERVER} ${SSH_OPTS} 'cat >> .ssh/authorized_keys; exit 0'\""
         if [[ $? -eq 0 ]]; then
-            echo -n "${SIG^^} "
+            echo -n "${SIGS[i]^^} "
         else
-            echo -n "[FAILED: ${SIG^^}] "
+            echo -n "[FAILED: ${SIGS[i]^^}] "
         fi
     fi
 done
@@ -121,15 +128,15 @@ echo ""; echo ""
 echo "### Testing pubkeys ###"
 TEST_FAIL=0
 SIG_FAIL=()
-for SIG in ${SIGS[@]}; do
-    SSH_OPTS="${GLOBAL_SSH_OPTS} -i ${SSH_ID_PATH}/id_${SIG//-/_} -o Batchmode=yes -o PubkeyAcceptedKeyTypes=${SIG//_/-} -o ConnectTimeout=60"
+for i in ${!SIGS[@]}; do
+    SSH_OPTS="${GLOBAL_SSH_OPTS} -i ${SSH_ID_PATH}/id_${SIGS[i]//-/_} -o Batchmode=yes -o PubkeyAcceptedKeyTypes=${SIGS_FULL[i]//_/-} -o ConnectTimeout=60"
     evaldbg "docker exec --user oqs -it ${CONTAINER} ssh ${SSH_OPTS} ${OQS_USER}@${SERVER} 'exit 0'"
     if [[ $? -eq 0 ]]; then
-        echo -n "${SIG^^} "
+        echo -n "${SIGS[i]^^} "
     else
-        echo -n "[FAILED: ${SIG^^}] "
+        echo -n "[FAILED: ${SIGS[i]^^}] "
         TEST_FAIL=1
-        SIG_FAIL+=(${SIG^^})
+        SIG_FAIL+=(${SIGS[i]^^})
     fi
 done
 echo ""; echo ""

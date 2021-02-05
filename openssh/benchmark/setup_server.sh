@@ -36,43 +36,70 @@ evaldbg "docker run
     ${DOCKER_OPTS} \
     ${DOCKER_IMG}"
 
-# Get list of host key algorithms
+# Get a list of key exchange algorithms
+KEMS=()
+while IFS="" read -r KEM; do
+    [[ $KEM == "" ]] || [[ $KEM =~ ^#.* ]] && continue # If this looks weird: No worries, it works (=~ takes regex, but not as string)
+    KEMS+=("$KEM")
+done < "$DIR/listofkems.conf"
+
+# Get list of signature algorithms
 SIGS=()
 while IFS="" read -r SIG; do 
     [[ $SIG == "" ]] || [[ $SIG =~ ^#.* ]] && continue # If this looks weird: No worries, it works (=~ takes regex, but not as string)
     SIGS+=("$SIG")
 done < "$DIR/listofsigs.conf"
 
-echo ""
-
-SIG_LIST=""
-for SIG in ${SIGS[@]}; do 
-    if [[ ${SIG,,} == *"@openssh.com" ]]; then
+# Add pre and postfixes to algorithm names if needed
+# KEM: ecdh-nistp384-<KEM>-sha384@openquantumsafe.org if PQC algorithm, else <KEM>
+for i in ${!KEMS[@]}; do
+    echo -n "${KEMS[i]} --> "
+    if [[ ${KEMS[i],,} != "curve25519-sha256"* ]] && [[ ${KEMS[i],,} != "ecdh-sha2-nistp"* ]] && [[ ${KEMS[i],,} != "diffie-hellman-group"* ]]; then
+        # Add prefix
+        if [[ ${KEMS[i],,} != "ecdh-nistp384-"* ]]; then
+            KEMS_FULL[i]="ecdh-nistp384-${KEMS[i],,}"
+        fi
+        # Add postfix
+        if [[ ${KEMS_FULL[i],,} != *"-sha384@openquantumsafe.org" ]]; then
+            KEMS_FULL[i]="${KEMS_FULL[i],,}-sha384@openquantumsafe.org"
+        fi
+    else
+        KEMS_FULL[i]="${KEMS[i],,}"
+    fi
+    echo "${KEMS_FULL[i]}"
+done
+# SIG: ssh-<SIG> if PQC algorithm, else <SIG>
+for i in ${!SIGS[@]}; do
+    echo -n "${SIGS[i]} --> "
+    if [[ ${SIGS[i],,} == *"@openssh.com" ]]; then
         echo "[FAIL] Use an algorithm without the '@openssh.com' postfix, they are not supported at the moment."
         echo "Use one of the following: ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521"
         exit 1
-    elif [[ ${SIG,,} == *"rsa"* ]] && [[ ${SIG,,} != *"rsa3072"* ]]; then
+    elif [[ ${SIGS[i],,} == *"rsa"* ]] && [[ ${SIGS[i],,} != *"rsa3072"* ]]; then
         echo "[FAIL] No support for any rsa algorithm."
         echo "Use one of the following: ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521"
         exit 1
-    elif [[ ${SIG,,} != "ecdsa-sha2-nistp"* ]] && [[ ${SIG,,} != "ssh-ed25519" ]]; then
-        # Prefix
-        if [[ ${SIG,,} != "ssh-"* ]]; then
-            SIG_LIST="$SIG_LIST,ssh-${SIG,,}"
+    elif [[ ${SIGS[i],,} != "ecdsa-sha2-nistp"* ]] && [[ ${SIGS[i],,} != "ssh-ed25519" ]]; then
+        # Add Prefix
+        if [[ ${SIGS[i],,} != "ssh-"* ]]; then
+            SIGS_FULL[i]="ssh-${SIGS[i],,}"
         fi
     else
-        SIG_LIST="$SIG_LIST,${SIG,,}"
+        SIGS_FULL[i]="${SIGS[i],,}"
     fi
-    # if [[ "${SIG,,}" == "*ecdsa*" ]] || [[ "${SIG,,}" == "*dsa*" ]]; then
-    #     SIG_LIST="$SIG_LIST,$SIG"
-    # else
-    #     SIG_LIST="$SIG_LIST,ssh-$SIG"
-    # fi
+    echo "${SIGS_FULL[i]}"
 done
-SIG_LIST=${SIG_LIST#,}
+
+# Make comma separated lists
+SIG_LIST=${SIGS_FULL[@]}
+SIG_LIST=${SIG_LIST// /,}
+KEM_LIST=${KEMS_FULL[@]}
+KEM_LIST=${KEM_LIST// /,}
+
+echo ""
 
 # Start sshd with all algorithms enabled
-evaldbg "docker exec -t ${CONTAINER} /opt/oqs-ssh/sbin/sshd -o PubkeyAcceptedKeyTypes=${SIG_LIST} -p ${PORT}"
+evaldbg "docker exec -t ${CONTAINER} /opt/oqs-ssh/sbin/sshd -o PubkeyAcceptedKeyTypes=${SIG_LIST} -o KexAlgorithms=${KEM_LIST} -p ${PORT}"
 
 if [[ $? -eq 0 ]]; then
     echo "### [ OK ] ### Server set up successfully! Now set up the client."
