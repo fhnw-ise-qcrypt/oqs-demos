@@ -8,15 +8,18 @@ rc-service oqs-sshd stop
 # default options
 OPTIONS=${OPTIONS:="-q -o BatchMode=yes -o StrictHostKeyChecking=no"}
 
-SIG=${SIG_ALG:="p256-dilithium2"}
-KEM=${KEM_ALG:="ecdh-nistp384-kyber-1024"}
+SIG=${SIG:="p384-dilithium4"}
+KEM=${KEM:="kyber-1024"}
 
-if [[ ${KEM,,} != "ecdh-nistp384-*" ]]; then
-    KEM="ecdh-nistp384-${KEM}"
-fi
+# Check if KEM is not classical algorithm
+if [[ ${KEM,,} != "curve25519-sha256"* ]] && [[ ${KEM,,} != "ecdh-sha2-nistp"* ]] && [[ ${KEM,,} != "diffie-hellman-group"* ]]; then
+    if [[ ${KEM,,} != "ecdh-nistp384-"* ]]; then
+        KEM="ecdh-nistp384-${KEM}"
+    fi
 
-if [[ ${KEM,,} != "*-sha384@openquantumsafe.org" ]]; then
-    KEM="${KEM}-sha384@openquantumsafe.org"
+    if [[ ${KEM,,} != *"-sha384@openquantumsafe.org" ]]; then
+        KEM="${KEM}-sha384@openquantumsafe.org"
+    fi
 fi
 
 # Generate new identity keys, overwrite old keys
@@ -31,7 +34,7 @@ cat ${SIG_ID_FILE}.pub >> ${SSH_DIR}/authorized_keys
 [[ $DEBUGLVL -gt 0 ]] && echo "Debug1: New identity key '${SIG_ID_FILE}(.pub)' created!"
 OPTIONS="${OPTIONS} -i ${SIG_ID_FILE}"
 
-eval "export CONNECT_TEST=true; serverstart.sh"
+eval "KEM=$KEM SIG=$SIG CONNECT_TEST=true serverstart.sh"
 
 # Evaluate if called as root
 if [ ${EUID} -eq 0 ]; then

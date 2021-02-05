@@ -2,19 +2,22 @@
 
 [[ $DEBUGLVL -gt 1 ]] && set -ex
 
-OPTIONS=${OPTIONS:=""}
+OPTIONS=${OPTIONS:="-q"}
 
 # SIG to one defined in https://github.com/open-quantum-safe/openssh#digital-signature
-SIG=${SIG_ALG:="p256-dilithium2"}
+SIG=${SIG:="p256-dilithium2"}
 # Set KEM to one defined in https://github.com/open-quantum-safe/openssh#key-exchange
-KEM=${KEM_ALG:="ecdh-nistp384-kyber-1024"}
+KEM=${KEM:="kyber-1024"}
 
-if [[ ${KEM,,} != "ecdh-nistp384-*" ]]; then
-    KEM="ecdh-nistp384-${KEM}"
-fi
+# Check if KEM is not classical algorithm
+if [[ ${KEM,,} != "curve25519-sha256"* ]] && [[ ${KEM,,} != "ecdh-sha2-nistp"* ]] && [[ ${KEM,,} != "diffie-hellman-group"* ]]; then
+    if [[ ${KEM,,} != "ecdh-nistp384-"* ]]; then
+        KEM="ecdh-nistp384-${KEM}"
+    fi
 
-if [[ ${KEM,,} != "*-sha384@openquantumsafe.org" ]]; then
-    KEM="${KEM}-sha384@openquantumsafe.org"
+    if [[ ${KEM,,} != *"-sha384@openquantumsafe.org" ]]; then
+        KEM="${KEM}-sha384@openquantumsafe.org"
+    fi
 fi
 
 SERVER_PORT=${SERVER_PORT:=2222}
