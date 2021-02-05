@@ -4,8 +4,8 @@ DIR=${0%/*}
 
 echo "Debug level set to ${DEBUGLVL:=0}"
 
-CONTAINER="oqs-server"
-DOCKER_IMG="oqs-openssh-img"
+CONTAINER=${CONTAINER:="oqs-client"}
+DOCKER_IMG=${DOCKER_IMG:="oqs-openssh-img"}
 PORT=${PORT:=2222}
 
 function evaldbg {

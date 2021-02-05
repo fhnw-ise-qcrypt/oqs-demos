@@ -2,6 +2,10 @@
 
 DIR=${0%/*}
 
+CONTAINER=${CONTAINER:="oqs-client"}
+DOCKER_IMG=${DOCKER_IMG:="oqs-openssh-img"}
+PORT=${PORT:=2222}
+
 if [ $# -lt 1 ]; then
     echo "Provide the server's IP address!"
     echo "Aborting..."
@@ -11,10 +15,6 @@ else
 fi
 
 echo "Debug level set to ${DEBUGLVL:=0}"
-
-CONTAINER="oqs-client"
-DOCKER_IMG="oqs-openssh-img"
-PORT=${PORT:=2222}
 
 function evaldbg {
     if [ $DEBUGLVL -ge 2 ]; then
