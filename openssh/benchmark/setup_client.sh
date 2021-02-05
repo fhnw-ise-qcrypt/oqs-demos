@@ -4,6 +4,7 @@ DIR=${0%/*}
 
 CONTAINER=${CONTAINER:="oqs-client"}
 DOCKER_IMG=${DOCKER_IMG:="oqs-openssh-img"}
+DOCKER_OPTS=${DOCKER_OPTS:=""}
 PORT=${PORT:=2222}
 
 if [ $# -lt 1 ]; then
@@ -40,6 +41,7 @@ evaldbg "docker run \
     -dit \
     --rm \
     -e SKIP_KEYGEN=YES \
+    ${DOCKER_OPTS} \
     ${DOCKER_IMG}"
 
 # For each host key generate a new id key
@@ -47,7 +49,22 @@ evaldbg "docker run \
 SIGS=()
 while IFS="" read -r SIG; do 
     [[ $SIG == "" ]] || [[ $SIG =~ ^#.* ]] && continue # If this looks weird: No worries, it works (=~ takes regex, but not as string)
-    SIGS+=("$SIG")
+    if [[ ${SIG,,} == *"@openssh.com" ]]; then
+        echo "[FAIL] Use an algorithm without the '@openssh.com' postfix, they are not supported at the moment."
+        echo "Use one of the following: ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521"
+        exit 1
+    elif [[ ${SIG,,} == *"rsa"* ]] && [[ ${SIG,,} != *"rsa3072"* ]]; then
+        echo "[FAIL] No support for any rsa algorithm."
+        echo "Use one of the following: ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521"
+        exit 1
+    elif [[ ${SIG,,} != "ecdsa-sha2-nistp"* ]] && [[ ${SIG,,} != "ssh-ed25519" ]]; then
+        # Add Prefix
+        if [[ ${SIG,,} != "ssh-"* ]]; then
+            SIGS+=("ssh-${SIG,,}")
+        fi
+    else
+        SIGS+=("${SIG,,}")
+    fi
 done < "$DIR/listofsigs.conf"
 
 echo ""
@@ -57,12 +74,17 @@ echo "### Generating identity keys ###"
 for SIG in ${SIGS[@]}; do 
     SIG=${SIG,,}
     echo -n "${SIG^^} "
-    evaldbg "docker exec --user oqs -t ${CONTAINER} ssh-keygen -t ssh-${SIG//_/-} -f ${SSH_ID_PATH}/id_${SIG//-/_} -N \"\" -q"
+    evaldbg "docker exec --user oqs -t ${CONTAINER} ssh-keygen -t ${SIG//_/-} -f ${SSH_ID_PATH}/id_${SIG//-/_} -N \"\" -q"
 done
 echo ""; echo ""
 
 ### Copy all .ssh/*.pub to server --> Need server IP
-GLOBAL_SSH_OPTS="-p ${PORT} -o StrictHostKeyChecking=no -q"
+GLOBAL_SSH_OPTS="-p ${PORT} -o StrictHostKeyChecking=no"
+if [[ $DEBUGLVL -eq 0 ]]; then
+    GLOBAL_SSH_OPTS="$GLOBAL_SSH_OPTS -q"
+elif [[ $DEBUGLVL -ge 2 ]]; then
+    GLOBAL_SSH_OPTS="$GLOBAL_SSH_OPTS -v"
+fi
 
 FIRST_KEY=${SIGS[0]}
 PASSWORD="oqs.pw"
@@ -83,7 +105,7 @@ fi
 KEYSET_FAIL=0
 for SIG in ${SIGS[@]}; do
     if [[ ${SIG//-/_} != ${FIRST_KEY//-/_} ]]; then
-        SSH_OPTS="${GLOBAL_SSH_OPTS} -o Batchmode=yes -i ${SSH_ID_PATH}/id_${FIRST_KEY//-/_} -o PubKeyAcceptedKeyTypes=ssh-${FIRST_KEY//_/-}"
+        SSH_OPTS="${GLOBAL_SSH_OPTS} -o Batchmode=yes -i ${SSH_ID_PATH}/id_${FIRST_KEY//-/_} -o PubKeyAcceptedKeyTypes=${FIRST_KEY//_/-}"
         evaldbg "docker exec --user oqs -t ${CONTAINER} bash -c \"cat ${SSH_ID_PATH}/id_${SIG//-/_}.pub | ssh ${OQS_USER}@${SERVER} ${SSH_OPTS} 'cat >> .ssh/authorized_keys; exit 0'\""
         if [[ $? -eq 0 ]]; then
             echo -n "${SIG^^} "
@@ -100,7 +122,7 @@ echo "### Testing pubkeys ###"
 TEST_FAIL=0
 SIG_FAIL=()
 for SIG in ${SIGS[@]}; do
-    SSH_OPTS="${GLOBAL_SSH_OPTS} -i ${SSH_ID_PATH}/id_${SIG//-/_} -o Batchmode=yes -o PubkeyAcceptedKeyTypes=ssh-${SIG//_/-} -o ConnectTimeout=60"
+    SSH_OPTS="${GLOBAL_SSH_OPTS} -i ${SSH_ID_PATH}/id_${SIG//-/_} -o Batchmode=yes -o PubkeyAcceptedKeyTypes=${SIG//_/-} -o ConnectTimeout=60"
     evaldbg "docker exec --user oqs -it ${CONTAINER} ssh ${SSH_OPTS} ${OQS_USER}@${SERVER} 'exit 0'"
     if [[ $? -eq 0 ]]; then
         echo -n "${SIG^^} "
