@@ -3,14 +3,14 @@
 import argparse
 import subprocess
 import re
-import numpy as np
+import csv
 
 # Split out the command line
 parser = argparse.ArgumentParser()
 parser.add_argument('--file', action='store', dest='filename', required=False,
-                    default='tmp/oqs-handshake-with-exit0.pcapng', help='Name of tshark pcap file')
+                    default='benchmark/results/*p256-dilithium2_kyber-512.pcap', help='Name of tshark pcap file')
 parser.add_argument('--port', action='store', dest='port', required=False,
-                    default=22, help='TCP/TLS socket number')
+                    default=2222, help='TCP/TLS socket number')
 arg = parser.parse_args()
 
 # Build out the tshark command
@@ -36,10 +36,38 @@ server_switch = 0
 note = 0
 deb = 0
 
+results = []
+results.append(['Loop [#]', 'RTT [s]', 'Start [#]', 'Start [s]', 'New Keys [#]',
+                'New Keys [s]', 'End [#]', 'End [s]', 'KEX Time [s]', 'AUTH Time [s]', 'HS Time [s]'])
+#  0 Loop
+#  1 RTT
+#  2 Start No.
+#  3 Start Time
+#  4 New Keys No.
+#  5 New Keys Time
+#  6 End No.
+#  7 End Time
+#  8 KEX Time
+#  9 AUTH Time
+# 10 HS Time
+
+I_LOOP = 0
+I_RTT = 1
+I_START_NO = 2
+I_START_T = 3
+I_NEWKEYS_NO = 4
+I_NEWKEYS_T = 5
+I_END_NO = 6
+I_END_T = 7
+I_KEX_T = 8
+I_AUTH_T = 9
+I_HS_T = 10
+EMPTY_LINE = ['', '', '', '', '', '', '', '', '', '', '', '']
+
 output = output.decode()
 for line in output.split('\n'):
     line = line.strip(' ')
-    print(line)
+    # print(line)
     # Beginning of the session
     if line.find('TCP Retransmission') != -1:
         tcp_retran_count += 1
@@ -52,18 +80,19 @@ for line in output.split('\n'):
             line = re.sub(' +', ' ', line)
             line_list = line.split(' ')
             rtt_start = float(line_list[1])
+            res_line = [None] * 11
+            res_line[I_LOOP] = loop_count
             continue
         if line.find('[SYN, ACK]') != -1:
             line = re.sub(' +', ' ', line)
             line_list = line.split(' ')
-            rtt = str(float(line_list[1])-rtt_start)
+            res_line[I_RTT] = float(line_list[1]) - rtt_start
             continue
         if line.find('Client: Protocol') != -1:
             line = re.sub(' +', ' ', line)
             line_list = line.split(' ')
-            start_dict[loop_count] = '{},{},'.format(
-                line_list[0], line_list[1],)
-            start_time = float(line_list[1])
+            res_line[I_START_NO] = float(line_list[0])
+            res_line[I_START_T] = float(line_list[1])
             continue
         if line.find('[RST, ACK]') != -1:
             loop_count -= 1
@@ -73,6 +102,10 @@ for line in output.split('\n'):
             client_switch = 0
             server_switch = 0
             note = 1
+            line = re.sub(' +', ' ', line)
+            line_list = line.split(' ')
+            res_line[I_NEWKEYS_NO] = float(line_list[0])
+            res_line[I_NEWKEYS_T] = float(line_list[1])
             continue
         if end_flag == 1:
             if line.find('Client: Encrypted packet') != -1:
@@ -91,16 +124,27 @@ for line in output.split('\n'):
                 server_switch = 1
                 line = re.sub(' +', ' ', line)
                 line_list = line.split(' ')
-                finish_dict[loop_count] = '{},{},{},{}'.format(line_list[0], line_list[1],
-                                                               str(float(line_list[1]) - start_time), rtt)
+                res_line[I_END_NO] = float(line_list[0])
+                res_line[I_END_T] = float(line_list[1])
                 if client_switch == 1:
+                    res_line[I_KEX_T] = res_line[I_NEWKEYS_T] - \
+                        res_line[I_START_T]
+                    res_line[I_AUTH_T] = res_line[I_END_T] - \
+                        res_line[I_KEX_T]
+                    res_line[I_HS_T] = res_line[I_KEX_T] + res_line[I_AUTH_T]
+                    results.append(res_line)
                     end_flag = 0
 
 # Print the results in CSV format
 # Loop, Start packet no, Start time, Finish packet no, Handshake time, Round-Trip time (TLS [SYN] to [SYN, ACK])
-for loop in range(1, loop_count+1):
-    print_str = str(loop) + ',' + \
-        str(start_dict[loop]) + str(finish_dict[loop])
-    print(print_str)
+# print("loop,s_no,s_time,f_no,f_time,handshake_time,rtt")
+# for loop in range(1, loop_count+1):
+#     print_str = str(loop) + ',' + \
+#         str(start_dict[loop]) + str(finish_dict[loop])
+#     print(print_str)
+
+
+with open(re.sub(r'\.pcap$', '', arg.filename) + ".csv", 'w') as f:
+    csv.writer(f).writerows(results)
 
 exit(0)

@@ -15,7 +15,7 @@ else
     SERVER=$1
 fi
 
-echo "Debug level set to ${DEBUGLVL:=0}"
+DEBUGLVL=${DEBUGLVL:=0}
 
 function evaldbg {
     if [ $DEBUGLVL -ge 2 ]; then
@@ -25,6 +25,11 @@ function evaldbg {
     return $?
 }
 
+echo "### Configuration ###"
+echo "Server IP: ${SERVER}"
+echo "Port:      ${PORt}"
+echo "Debug LVL: ${DEBUGLVL}"
+echo ""
 # Stop client if running
 evaldbg "docker ps | grep ${CONTAINER}"
 if [ $? -eq 0 ]; then
@@ -37,6 +42,7 @@ echo ""
 echo "Starting ${CONTAINER}:"
 evaldbg "docker run \
     --user oqs \
+    --net host
     --name ${CONTAINER} \
     -dit \
     --rm \
@@ -152,7 +158,7 @@ if [[ TEST_FAIL -gt 0 ]]; then
         echo -n "${FAIL} "
     done
     echo ""
-    echo " ### [Note] ### The problem could also be server side!"
+    echo "### [Note] ### The problem could also be server side!"
     exit 1
 else
     echo "### [ OK ] ### Client (and thus the server) set up successfully! The testing may begin!"

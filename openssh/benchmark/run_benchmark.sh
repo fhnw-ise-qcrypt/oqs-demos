@@ -6,6 +6,7 @@ PORT=${PORT:=2222}
 CONTAINER=${CONTAINER:="oqs-client"}
 OQS_USER=${OQS_USER:="oqs"}
 DOCKER_OPTS=${DOCKER_OPTS:=""}
+TSHARK_INTERFACE=${TSHARK_INTERFACE:="any"}
 
 if [ $# -lt 1 ]; then
     echo "Provide the server's IP address and optionally its port in the following format:"
@@ -14,14 +15,17 @@ if [ $# -lt 1 ]; then
     exit 1
 elif [ $# -eq 1 ]; then
     SERVER=$1
-    echo "Server IP:PORT is ${SERVER}:${PORT}"
 elif [ $# -eq 2 ]; then
     SERVER=$1
     PORT=$2
-    echo "Server IP:PORT is ${SERVER}:${PORT}"
 fi
 
-echo "Debug level is ${DEBUGLVL:=0}"
+DEBUGLVL=${DEBUGLVL:=0}
+
+echo "### Configuration ###"
+echo "Server IP: ${SERVER}"
+echo "Port:      ${PORt}"
+echo "Debug LVL: ${DEBUGLVL}"
 
 function evaldbg {
     if [ $DEBUGLVL -ge 2 ]; then
@@ -45,8 +49,12 @@ done < "$DIR/listoftests.conf"
 
 # Add pre and postfixes to algorithm names if needed
 # KEM: ecdh-nistp384-<KEM>-sha384@openquantumsafe.org if PQC algorithm, else <KEM>
+[[ $DEBUGLVL -ge 1 ]] &&
+    echo "" &&
+    echo "### Renaming KEMs ###"
 for i in ${!KEMS[@]}; do
-    echo -n "${KEMS[i]} --> "
+    [[ $DEBUGLVL -ge 1 ]] &&
+        echo -n "${KEMS[i]} --> "
     if [[ ${KEMS[i],,} != "curve25519-sha256"* ]] && [[ ${KEMS[i],,} != "ecdh-sha2-nistp"* ]] && [[ ${KEMS[i],,} != "diffie-hellman-group"* ]]; then
         # Add prefix
         if [[ ${KEMS[i],,} != "ecdh-nistp384-"* ]]; then
@@ -59,11 +67,16 @@ for i in ${!KEMS[@]}; do
     else
         KEMS_FULL[i]="${KEMS[i],,}"
     fi
-    echo "${KEMS_FULL[i]}"
+    [[ $DEBUGLVL -ge 1 ]] &&
+        echo "${KEMS_FULL[i]}"
 done
 # SIG: ssh-<SIG> if PQC algorithm, else <SIG>
+[[ $DEBUGLVL -ge 1 ]] &&
+    echo "" &&
+    echo "### Renaming SIGs ###"
 for i in ${!SIGS[@]}; do
-    echo -n "${SIGS[i]} --> "
+    [[ $DEBUGLVL -ge 1 ]] &&
+        echo -n "${SIGS[i]} --> "
     if [[ ${SIGS[i],,} == *"@openssh.com" ]]; then
         echo "[FAIL] Use an algorithm without the '@openssh.com' postfix, they are not supported at the moment."
         echo "Use one of the following: ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521"
@@ -80,16 +93,24 @@ for i in ${!SIGS[@]}; do
     else
         SIGS_FULL[i]="${SIGS[i],,}"
     fi
-    echo "${SIGS_FULL[i]}"
+    [[ $DEBUGLVL -ge 1 ]] &&
+        echo "${SIGS_FULL[i]}"
 done
 
 # Create directory for storing the results
 RESULTSDIR="${DIR}/results"
-if [[ -d ${RESULTSDIR} ]]; then
-    rm -f ${RESULTSDIR}/*
-else
+ARCHIVEDIR="${RESULTSDIR}/olds"
+if [[ ! -d ${RESULTSDIR} ]]; then
     mkdir ${RESULTSDIR}
 fi
+for file in ${RESULTSDIR}/*; do
+    if [[ "${file}" == *".pcap" ]]; then
+        if [[ ! -d ${ARCHIVEDIR} ]]; then
+            mkdir ${ARCHIVEDIR}
+        fi
+        mv ${file} ${ARCHIVEDIR}
+    fi
+done
 
 echo ""
 echo "### Run tests ###"
@@ -110,7 +131,7 @@ SSH_DIR="/home/${OQS_USER}/.ssh"
 TEST_FAIL=0
 for i in ${!SIGS_FULL[@]}; do
 #   Start tshark capture for <SIG>_<KEM>
-    evaldbg "tshark -i any -f ${TSHARK_FILTER} -w \"${RESULTSDIR}/${DATETIME}_${SIGS[i]}_${KEMS[i]}.pcap\" -q &"
+    evaldbg "tshark -i ${TSHARK_INTERFACE} -f ${TSHARK_FILTER} -w \"${RESULTSDIR}/${DATETIME}_${SIGS[i]}_${KEMS[i]}.pcap\" -q &"
     TSHARK_PID=$!
     sleep 0.42
 #   Do test n times
