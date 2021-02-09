@@ -51,8 +51,12 @@ while IFS="" read -r SIG; do
     SIGS+=("$SIG")
 done < "$DIR/listofsigs.conf"
 
+[[ $DEBUGLVL -ge 1 ]] &&
+    echo "" &&
+    echo "### Renaming SIGs ###"
 for i in ${!SIGS[@]}; do
-    echo -n "${SIGS[i]} --> "
+    [[ $DEBUGLVL -ge 1 ]] &&
+        echo -n "${SIGS[i]} --> "
     if [[ ${SIGS[i],,} == *"@openssh.com" ]]; then
         echo "[FAIL] Use an algorithm without the '@openssh.com' postfix, they are not supported at the moment."
         echo "Use one of the following: ssh-ed25519, ecdsa-sha2-nistp256, ecdsa-sha2-nistp384, ecdsa-sha2-nistp521"
@@ -69,7 +73,8 @@ for i in ${!SIGS[@]}; do
     else
         SIGS_FULL[i]="${SIGS[i],,}"
     fi
-    echo "${SIGS_FULL[i]}"
+    [[ $DEBUGLVL -ge 1 ]] &&
+        echo "${SIGS_FULL[i]}"
 done
 
 echo ""

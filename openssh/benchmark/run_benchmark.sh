@@ -107,6 +107,7 @@ if [[ $DEBUGLVL -ge 3 ]]; then
 fi
 SSH_DIR="/home/${OQS_USER}/.ssh"
 # Loop over all tests
+TEST_FAIL=0
 for i in ${!SIGS_FULL[@]}; do
 #   Start tshark capture for <SIG>_<KEM>
     evaldbg "tshark -i any -f ${TSHARK_FILTER} -w \"${RESULTSDIR}/${DATETIME}_${SIGS[i]}_${KEMS[i]}.pcap\" -q &"
