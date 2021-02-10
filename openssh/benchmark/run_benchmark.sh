@@ -7,6 +7,7 @@ CONTAINER=${CONTAINER:="oqs-client"}
 OQS_USER=${OQS_USER:="oqs"}
 DOCKER_OPTS=${DOCKER_OPTS:=""}
 TSHARK_INTERFACE=${TSHARK_INTERFACE:="any"}
+TSHARK_STARTDELAY=${TSHARK_STARTDELAY:=2}
 
 if [ $# -lt 1 ]; then
     echo "Provide the server's IP address and optionally its port in the following format:"
@@ -133,7 +134,7 @@ for i in ${!SIGS_FULL[@]}; do
 #   Start tshark capture for <SIG>_<KEM>
     evaldbg "tshark -i ${TSHARK_INTERFACE} -f ${TSHARK_FILTER} -w \"${RESULTSDIR}/${DATETIME}_${SIGS[i]}_${KEMS[i]}.pcap\" -q &"
     TSHARK_PID=$!
-    sleep 0.42
+    sleep ${TSHARK_STARTDELAY}
 #   Do test n times
     SSH_OPTS="${SSH_GLOBAL_OPTS} -i ${SSH_DIR}/id_${SIGS[i]//-/_} -o PubKeyAcceptedKeyTypes=${SIGS_FULL[i]//_/-} -o KexAlgorithms=${KEMS_FULL[i]//_/-}"
     for j in $(eval echo {1..${NUM_LOOPS[i]}}); do

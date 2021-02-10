@@ -130,7 +130,7 @@ for line in output.split('\n'):
                     res_line[I_KEX_T] = res_line[I_NEWKEYS_T] - \
                         res_line[I_START_T]
                     res_line[I_AUTH_T] = res_line[I_END_T] - \
-                        res_line[I_KEX_T]
+                        res_line[I_NEWKEYS_T]
                     res_line[I_HS_T] = res_line[I_KEX_T] + res_line[I_AUTH_T]
                     results.append(res_line)
                     end_flag = 0
