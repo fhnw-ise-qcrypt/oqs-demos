@@ -27,7 +27,7 @@ function evaldbg {
 
 echo "### Configuration ###"
 echo "Server IP: ${SERVER}"
-echo "Port:      ${PORt}"
+echo "Port:      ${PORT}"
 echo "Debug LVL: ${DEBUGLVL}"
 echo ""
 # Stop client if running

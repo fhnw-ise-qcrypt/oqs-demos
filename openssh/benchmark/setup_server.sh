@@ -2,12 +2,12 @@
 
 DIR=${0%/*}
 
-echo "Debug level set to ${DEBUGLVL:=0}"
 
 CONTAINER=${CONTAINER:="oqs-server"}
 DOCKER_IMG=${DOCKER_IMG:="oqs-openssh-img"}
 DOCKER_OPTS=${DOCKER_OPTS:=""}
 PORT=${PORT:=2222}
+DEBUGLVL=${DEBUGLVL:=0}
 
 function evaldbg {
     if [ $DEBUGLVL -ge 2 ]; then

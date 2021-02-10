@@ -99,7 +99,7 @@ for i in ${!SIGS[@]}; do
 done
 
 # Create directory for storing the results
-RESULTSDIR="${DIR}/results"
+RESULTSDIR="${DIR}/measurements"
 ARCHIVEDIR="${RESULTSDIR}/olds"
 if [[ ! -d ${RESULTSDIR} ]]; then
     mkdir ${RESULTSDIR}
@@ -160,5 +160,9 @@ else
     for FAIL in ${SIGKEM_FAIL[@]}; do
         echo "${FAIL} "
     done
+    echo "### [INFO] ### Skipping evaluation, run '${DIR}/eval_benchmark.sh' manually"
+    exit 1
     echo ""
 fi
+
+evaldbg ${DIR}/eval_benchmark.sh
