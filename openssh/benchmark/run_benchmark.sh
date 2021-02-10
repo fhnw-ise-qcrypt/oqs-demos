@@ -39,10 +39,10 @@ function evaldbg {
 SIGS=()
 KEMS=()
 NUM_LOOPS=()
-while read -r SIG KEM NUM_LOOP; do 
-    [[ ${SIG} == "" ]] || [[ ${SIG} =~ ^#.* ]] && continue # Check if first character is '#'
-    SIGS+=("${SIG}")
+while read -r KEM SIG NUM_LOOP; do 
+    [[ ${KEM} == "" ]] || [[ ${KEM} =~ ^#.* ]] && continue # Check if first character is '#'
     KEMS+=("${KEM}")
+    SIGS+=("${SIG}")
     NUM_LOOPS+=("${NUM_LOOP}")
     # echo "i found >${SIGS[-1]}< >${KEMS[-1]}< >${NUM_LOOPS[-1]}<"
 done < "$DIR/listoftests.conf"
