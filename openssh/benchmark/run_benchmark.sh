@@ -25,7 +25,7 @@ DEBUGLVL=${DEBUGLVL:=0}
 
 echo "### Configuration ###"
 echo "Server IP: ${SERVER}"
-echo "Port:      ${PORt}"
+echo "Port:      ${PORT}"
 echo "Debug LVL: ${DEBUGLVL}"
 
 function evaldbg {
@@ -99,25 +99,25 @@ for i in ${!SIGS[@]}; do
 done
 
 # Create directory for storing the results
-RESULTSDIR="${DIR}/measurements"
-ARCHIVEDIR="${RESULTSDIR}/olds"
+evaldbg DATETIME=$(date +"%Y-%m-%d_%H-%M-%S")
+RESULTSDIR="${DIR}/measurements/${DATETIME}"
+# ARCHIVEDIR="${RESULTSDIR}/olds"
 if [[ ! -d ${RESULTSDIR} ]]; then
     mkdir ${RESULTSDIR}
 fi
-for file in ${RESULTSDIR}/*; do
-    if [[ "${file}" == *".pcap" ]]; then
-        if [[ ! -d ${ARCHIVEDIR} ]]; then
-            mkdir ${ARCHIVEDIR}
-        fi
-        mv ${file} ${ARCHIVEDIR}
-    fi
-done
+# for file in ${RESULTSDIR}/*; do
+#     if [[ "${file}" == *".pcap" ]]; then
+#         if [[ ! -d ${ARCHIVEDIR} ]]; then
+#             mkdir ${ARCHIVEDIR}
+#         fi
+#         mv ${file} ${ARCHIVEDIR}
+#     fi
+# done
 
 echo ""
 echo "### Run tests ###"
 
 # Get timestamp
-evaldbg DATETIME=$(date +"%Y-%m-%d_%H-%M-%S")
 
 # Build tshark filter (any interface, ssh and tcp, server address:port)
 TSHARK_FILTER="\"tcp port ${PORT}\""
@@ -132,7 +132,7 @@ SSH_DIR="/home/${OQS_USER}/.ssh"
 TEST_FAIL=0
 for i in ${!SIGS_FULL[@]}; do
 #   Start tshark capture for <SIG>_<KEM>
-    evaldbg "tshark -i ${TSHARK_INTERFACE} -f ${TSHARK_FILTER} -w \"${RESULTSDIR}/${DATETIME}_${SIGS[i]}_${KEMS[i]}.pcap\" -q &"
+    evaldbg "tshark -i ${TSHARK_INTERFACE} -f ${TSHARK_FILTER} -w \"${RESULTSDIR}/${KEMS[i]}_${SIGS[i]}.pcap\" -q &"
     TSHARK_PID=$!
     sleep ${TSHARK_STARTDELAY}
 #   Do test n times
@@ -140,7 +140,7 @@ for i in ${!SIGS_FULL[@]}; do
     for j in $(eval echo {1..${NUM_LOOPS[i]}}); do
         evaldbg docker exec --user ${OQS_USER} -i ${DOCKER_OPTS} ${CONTAINER} ssh ${SSH_OPTS} ${OQS_USER}@${SERVER} 'exit 0'
         if [[ $? -eq 0 ]]; then
-            echo "${SIGS[i]^^} and ${KEMS[i]^^}           ${j}/${NUM_LOOPS[i]} runs done "
+            echo "${KEMS[i]^^} and ${SIGS[i]^^}           ${j}/${NUM_LOOPS[i]} runs done "
         else
             echo "[FAIL] in run ${j}/${NUM_LOOPS[i]}"
             TEST_FAIL=1
@@ -149,7 +149,7 @@ for i in ${!SIGS_FULL[@]}; do
             fi
         fi
     done
-    pkill -9 ${TSHARK_PID}
+    killall tshark
     echo ""
 done
 
@@ -165,4 +165,4 @@ else
     echo ""
 fi
 
-evaldbg ${DIR}/eval_benchmark.sh
+evaldbg ${DIR}/eval_benchmark.sh ${RESULTSDIR}
