@@ -59,13 +59,9 @@ for i in ${!KEMS[@]}; do
     [[ $DEBUGLVL -ge 1 ]] &&
         echo -n "${KEMS[i]} --> "
     if [[ ${KEMS[i],,} != "curve25519-sha256"* ]] && [[ ${KEMS[i],,} != "ecdh-sha2-nistp"* ]] && [[ ${KEMS[i],,} != "diffie-hellman-group"* ]]; then
-        # Add prefix
-        if [[ ${KEMS[i],,} != "ecdh-nistp384-"* ]]; then
-            KEMS_FULL[i]="ecdh-nistp384-${KEMS[i],,}"
-        fi
         # Add postfix
-        if [[ ${KEMS_FULL[i],,} != *"-sha384@openquantumsafe.org" ]]; then
-            KEMS_FULL[i]="${KEMS_FULL[i],,}-sha384@openquantumsafe.org"
+        if [[ ${KEMS[i],,} != *"-sha384@openquantumsafe.org" ]]; then
+            KEMS_FULL[i]="${KEMS[i],,}-sha384@openquantumsafe.org"
         fi
     else
         KEMS_FULL[i]="${KEMS[i],,}"
