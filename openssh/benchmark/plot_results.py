@@ -31,7 +31,7 @@ parser = argparse.ArgumentParser(description="Plots benchmarking results")
 parser.add_argument('--dir', '-d', action='store', dest='dir', required=True,
                     help='Directory with .csv files that should be plotted.')
 parser.add_argument('--percentiles', '-p', action='store', dest='percentiles', required=False,
-                    default='50,95', help='The percentiles that should be calculated an plotted. Supply as comma separated list')
+                    default='50,95', help='The percentiles that should be calculated and plotted. Supply as comma separated list')
 parser.add_argument('--title', '-t', action='store', dest='plotTitle', required=False,
                     help='Optional plot title')
 parser.add_argument('--round', '-r', action='store', dest='precision', required=False, default=2,
@@ -43,6 +43,7 @@ args = parser.parse_args()
 calcPercentiles = list(
     sorted(set([int(v) for v in str(args.percentiles).split(',')])))
 annotationPrecision = int(args.precision)
+superTitle = args.plotTitle + '\n' if args.plotTitle else ''
 
 # Get Kem and Sig data
 kemsigs = []
@@ -57,7 +58,6 @@ if not kemsigs:
     exit(1)
 
 for i, each in enumerate(kemsigs):
-    print('Found and parsed data for: ' + str(each))
     if each.sig == 'ssh-ed25519' or each.sig == 'ecdsa-sha2-nistp*':
         kemsigs.insert(0, kemsigs.pop(i))
 
@@ -98,8 +98,14 @@ def percentileString(calcPercentiles):
     return percStr
 
 
-### Plot stuff ###
+### Print stuff ###
+# Print RTT information
+print('Average Rount-Trip-Time with ' + superTitle[:-1] + ': ' +
+      str(np.round(np.average([v.averages['rtt'] for v in kemsigs]), 4)))
+print('Median Rount-Trip-Time with ' + superTitle[:-1] + ': ' +
+      str(np.round(np.median([v.medians['rtt'] for v in kemsigs]), 4)))
 
+### Plot stuff ###
 # Get data
 numBars = len(calcPercentiles)
 kexPercentiles = [v.percentiles['kex'] for v in kemsigs]
@@ -131,7 +137,6 @@ rectsKex = ax.bar(subIndieces, xKexData, barWidth * 0.95)
 rectsAuth = ax.bar(subIndieces, xAuthData, barWidth * 0.95, bottom=xKexData)
 labelBars(rectsKex, rectsAuth)
 ax.set_ylabel('Handshake duration (sec)', fontsize=fontSize['axeslabels'])
-superTitle = args.plotTitle + '\n' if args.plotTitle else ''
 ax.set_title(superTitle +
              'Handshake time by algorithm, split into key exchange and authentication' + '\n' + percentileString(calcPercentiles), fontsize=fontSize['title'])
 plt.yticks(fontsize=fontSize['ticklabels'])
@@ -140,9 +145,3 @@ plt.xticks(indieces, [each.__str__()
 plt.legend(['Key Exchange', 'Authentication'], fontsize=fontSize['legend'])
 
 plt.show()
-
-# Print RTT information
-print('Average Rount-Trip-Time with ' + superTitle[:-1] + ': ' +
-      str(np.round(np.average([v.averages['rtt'] for v in kemsigs]), 4)))
-print('Median Rount-Trip-Time with ' + superTitle[:-1] + ': ' +
-      str(np.round(np.median([v.medians['rtt'] for v in kemsigs]), 4)))

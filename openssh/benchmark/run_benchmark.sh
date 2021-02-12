@@ -10,15 +10,11 @@ TSHARK_INTERFACE=${TSHARK_INTERFACE:="any"}
 TSHARK_STARTDELAY=${TSHARK_STARTDELAY:=2}
 
 if [ $# -lt 1 ]; then
-    echo "Provide the server's IP address and optionally its port in the following format:"
-    echo "${0##*/} <server_ip> <server_port>"
+    echo "Provide the server's IP address!"
     echo "Aborting..."
     exit 1
-elif [ $# -eq 1 ]; then
+else
     SERVER=$1
-elif [ $# -eq 2 ]; then
-    SERVER=$1
-    PORT=$2
 fi
 
 DEBUGLVL=${DEBUGLVL:=0}
