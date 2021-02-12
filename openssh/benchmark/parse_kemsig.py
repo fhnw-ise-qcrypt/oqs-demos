@@ -42,8 +42,12 @@ class KemSigPair:
 
     def __init__(self, file, percentiles2calc=[50, 90]):
         self.percentiles2calc = percentiles2calc
-        self.kem, self.sig = re.sub(
-            r'^.*/', '', re.sub(r'\.csv$', '', file)).split('_')
+        filename = re.sub(
+            r'^.*/', '', re.sub(r'\.csv$', '', file))
+        if len(filename.split('_')) == 3:
+            self.number, self.kem, self.sig = filename.split('_')
+        elif len(filename.split('_')) == 2:
+            self.kem, self.sig = filename.split('_')
         self.file = file
         self.data = KemSigData(file)
         self.calcSpecs()
@@ -52,10 +56,12 @@ class KemSigPair:
         return self.kem + ' + ' + self.sig
 
     def calcSpecs(self):
+        self.medians = {}
         self.averages = {}
         self.percentiles = {}
         for k, v in self.data.timeData.items():
             if k == 'rtt' or k == 'kex' or k == 'auth' or k == 'handshake':
+                self.medians[k] = np.median(v)
                 self.averages[k] = np.average(v)
                 self.percentiles[k] = [float(each) for each in np.percentile(
                     v, self.percentiles2calc).tolist()]

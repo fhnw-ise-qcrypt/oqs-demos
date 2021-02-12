@@ -101,18 +101,9 @@ done
 # Create directory for storing the results
 evaldbg DATETIME=$(date +"%Y-%m-%d_%H-%M-%S")
 RESULTSDIR="${DIR}/measurements/${DATETIME}"
-# ARCHIVEDIR="${RESULTSDIR}/olds"
 if [[ ! -d ${RESULTSDIR} ]]; then
     mkdir ${RESULTSDIR}
 fi
-# for file in ${RESULTSDIR}/*; do
-#     if [[ "${file}" == *".pcap" ]]; then
-#         if [[ ! -d ${ARCHIVEDIR} ]]; then
-#             mkdir ${ARCHIVEDIR}
-#         fi
-#         mv ${file} ${ARCHIVEDIR}
-#     fi
-# done
 
 echo ""
 echo "### Run tests ###"
@@ -132,7 +123,7 @@ SSH_DIR="/home/${OQS_USER}/.ssh"
 TEST_FAIL=0
 for i in ${!SIGS_FULL[@]}; do
 #   Start tshark capture for <SIG>_<KEM>
-    evaldbg "tshark -i ${TSHARK_INTERFACE} -f ${TSHARK_FILTER} -w \"${RESULTSDIR}/${KEMS[i]}_${SIGS[i]}.pcap\" -q &"
+    evaldbg "tshark -i ${TSHARK_INTERFACE} -f ${TSHARK_FILTER} -w \"${RESULTSDIR}/${i}_${KEMS[i]}_${SIGS[i]}.pcap\" -q &"
     TSHARK_PID=$!
     sleep ${TSHARK_STARTDELAY}
 #   Do test n times
